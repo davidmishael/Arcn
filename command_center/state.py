@@ -58,7 +58,7 @@ class StateManager:
 
         with open(STATE_FILE, "w") as f:
             json.dump(state, f, indent=4)
-    
+
     # -------------------------
     # Track last intent
     # -------------------------
@@ -69,7 +69,7 @@ class StateManager:
 
     def get_last_intent(self) -> str:
         return self.get_state().get("last_intent", "")
-    
+
     # -------------------------
     # Pending reminder topic
     # -------------------------
@@ -84,4 +84,20 @@ class StateManager:
     def clear_pending_reminder(self):
         state = self.get_state()
         state.pop("pending_reminder_topic", None)
+        self._write(state)
+
+    # -------------------------
+    # Pending reminder date
+    # -------------------------
+    def set_pending_date(self, relative_time: str):
+        state = self.get_state()
+        state["pending_reminder_date"] = relative_time
+        self._write(state)
+
+    def get_pending_date(self) -> str:
+        return self.get_state().get("pending_reminder_date", "")
+
+    def clear_pending_date(self):
+        state = self.get_state()
+        state.pop("pending_reminder_date", None)
         self._write(state)

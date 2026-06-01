@@ -74,7 +74,6 @@ def _spacy_entities(text: str, doc) -> dict:
             entities["time"] = ent.text
 
         elif ent.label_ in ("DATE",):
-            # Separate relative time from dates
             relative = ["tomorrow", "today", "tonight", "morning", "evening", "friday",
                         "monday", "tuesday", "wednesday", "thursday", "saturday", "sunday"]
             if any(r in ent.text.lower() for r in relative):
@@ -86,7 +85,6 @@ def _spacy_entities(text: str, doc) -> dict:
             entities["location"] = ent.text
 
         elif ent.label_ == "ORG":
-            # Check if it's a known app
             if ent.text.lower() in KNOWN_APPS:
                 entities["app"] = ent.text.lower()
 
@@ -183,7 +181,6 @@ def _filter_by_intent(entities: dict, intent: str) -> dict:
 # -------------------------
 
 
-
 def _extract_topic(text: str, intent: str) -> dict:
 
     entities = {}
@@ -199,24 +196,24 @@ def _extract_topic(text: str, intent: str) -> dict:
         "can you remind me to",
         "can you remind me about",
         "please remind me to",
-        "please remind me about",   
+        "please remind me about",
         "remind me to", "remind me about", "remind me",
         "search for ", "look up", "google", "find information about",
         "take a note", "write down", "note that", "note to self",
         "tell me about", "explain", "what is", "how does", "who is",
-         "text", "send a message to", "tell"
+        "text", "send a message to", "tell"
     ]
 
     cleaned = text.lower()
     for phrase in strip_phrases:
         cleaned = cleaned.replace(phrase, "").strip()
+
     # Clean up any leftover filler words
     filler = ["could you", "can you", "please", "hey", "actually"]
     for word in filler:
         cleaned = cleaned.replace(word, "").strip()
 
-    
-    # Strip time from topic for reminders
+    # Strip time expressions from topic for reminders
     if intent == "create_reminder":
         topic_cleaned = re.sub(
             r'\b(at|by|on|for)?\s*\d{1,2}(:\d{2})?\s*(a\.?m\.?|p\.?m\.?)\b',
@@ -224,17 +221,30 @@ def _extract_topic(text: str, intent: str) -> dict:
             cleaned,
             flags=re.IGNORECASE
         ).strip()
-        if topic_cleaned:
-             entities["topic"] = topic_cleaned.strip(" .")
-        return entities
-    # Strip relative time from topic
-    topic_cleaned = re.sub(
-        r'\bin\s+\d+\s*(s|sec|secs|seconds?|m|min|mins|minutes?|h|hr|hrs|hours?)\b',
-        '',
-        topic_cleaned,
-        flags=re.IGNORECASE
-    ).strip(" .")
 
+        # Strip relative time from topic
+        topic_cleaned = re.sub(
+            r'\bin\s+\d+\s*(s|sec|secs|seconds?|m|min|mins|minutes?|h|hr|hrs|hours?)\b',
+            '',
+            topic_cleaned,
+            flags=re.IGNORECASE
+        ).strip(" .")
+
+        # Strip day/date/time-of-day references
+        topic_cleaned = re.sub(
+            r'\b(tomorrow|today|tonight|night|morning|afternoon|evening|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+            '',
+            topic_cleaned,
+            flags=re.IGNORECASE
+        ).strip(" .")
+
+        # Final cleanup — stray prepositions and punctuation
+        topic_cleaned = re.sub(r'\b(on|at|by|for|in)\b', '', topic_cleaned, flags=re.IGNORECASE)
+        topic_cleaned = re.sub(r'\s+', ' ', topic_cleaned).strip(" .")
+
+        if topic_cleaned:
+            entities["topic"] = topic_cleaned
+        return entities
 
     if cleaned:
         key = "query" if intent == "web_search" else "topic"

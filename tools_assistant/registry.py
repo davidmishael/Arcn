@@ -1,3 +1,4 @@
+from html import entities
 import os
 import urllib.parse
 import threading
@@ -404,16 +405,26 @@ def create_reminder(entities: dict = {}):
     from state import StateManager
     state = StateManager()
 
-    topic   = entities.get("topic", "") or state.get_pending_reminder()
-    raw     = entities.get("raw_text", "")
+    topic = entities.get("topic", "") or state.get_pending_reminder()
+    raw   = entities.get("raw_text", "")
 
-    if not topic:
-        return "What should I remind you about?"
+    # Restore pending date if not in current entities
+    if not entities.get("relative_time") and state.get_pending_date():
+        entities["relative_time"] = state.get_pending_date()
+
+        #print(f"DEBUG ENTITIES BEFORE PARSE: {entities}")
 
     reminder_dt, needs_clarification = parse_reminder_time(entities, raw)
 
     if needs_clarification:
-        state.set_pending_reminder(topic)
+        import re
+        clean_topic = re.sub(
+            r'\b(tomorrow|today|tonight|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+            '', topic, flags=re.IGNORECASE
+        ).strip(" .")
+        state.set_pending_reminder(clean_topic)
+        # Save date context too
+        state.set_pending_date(entities.get("relative_time", ""))
         return "What time should I set the reminder for?"
 
     # Clear pending once we have everything

@@ -51,6 +51,7 @@ def _parse_exact_time(time_str: str):
     time_str = re.sub(r'\s*p\.m', 'pm', time_str)
     time_str = re.sub(r'\s*a\.m', 'am', time_str)
 
+
     # "6pm", "8am"
     match = re.match(r'^(\d{1,2})(am|pm)$', time_str)
     if match:
@@ -61,6 +62,17 @@ def _parse_exact_time(time_str: str):
         elif period == "am" and hour == 12:
             hour = 0
         return datetime.time(hour, 0)
+    # "632pm", "1230am" — no separator
+    match = re.match(r'^(\d{1,2})(\d{2})(am|pm)$', time_str)
+    if match:
+        hour   = int(match.group(1))
+        minute = int(match.group(2))
+        period = match.group(3)
+        if period == "pm" and hour != 12:
+            hour += 12
+        elif period == "am" and hour == 12:
+            hour = 0
+        return datetime.time(hour, minute)
 
     # "8:30am", "6:45pm"
     match = re.match(r'^(\d{1,2}):(\d{2})(am|pm)$', time_str)
@@ -116,6 +128,7 @@ def _resolve_date(entities: dict):
     relative = entities.get("relative_time", "").lower()
     date_ent = entities.get("date", "").lower()
 
+    # "tomorrow"
     if "tomorrow" in relative or "tomorrow" in date_ent:
         return today + datetime.timedelta(days=1)
 
@@ -141,11 +154,17 @@ def parse_reminder_time(entities: dict, raw_text: str):
     raw_text = _normalize_text(raw_text.lower())
     raw_text = re.sub(r'\s*p\.m\.?', 'pm', raw_text)
     raw_text = re.sub(r'\s*a\.m\.?', 'am', raw_text)
+    raw_text = re.sub(r'\b(\d{1,2})\s+(\d{2})\s*(am|pm)', r'\1:\2\3', raw_text)
+    # Normalize "6.32pm" → "6:32pm"
+    raw_text = re.sub(r'\b(\d{1,2})\.(\d{2})\s*(am|pm)', r'\1:\2\3', raw_text)
 
     if "time" in entities:
-        entities["time"] = _normalize_text(entities["time"].lower())
+        entities["time"] = entities["time"].strip(" .")
         entities["time"] = re.sub(r'\s*p\.m\.?', 'pm', entities["time"])
         entities["time"] = re.sub(r'\s*a\.m\.?', 'am', entities["time"])
+        entities["time"] = re.sub(r'\b(\d{1,2})\s+(\d{2})\s*(am|pm)', r'\1:\2\3', entities["time"])
+        entities["time"] = _normalize_text(entities["time"].lower())
+        entities["time"] = re.sub(r'\b(\d{1,2})\.(\d{2})\s*(am|pm)', r'\1:\2\3', entities["time"])
 
     # Case 0 — raw_text itself might just be a time ("6pm", "6 p.m.")
     direct = _parse_exact_time(raw_text.strip())
