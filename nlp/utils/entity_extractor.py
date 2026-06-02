@@ -24,7 +24,7 @@ INTENT_SLOTS = {
     "play_music"       : ["app", "genre"],
     "pause_music"      : [],
     "skip_song"        : [],
-    "web_search"       : ["query", "topic"],
+    "web_search"       : ["query", "topic", "app"],
     "open_app"         : ["app"],
     "close_app"        : ["app"],
     "get_weather"      : ["location", "date", "relative_time", "unit"],
@@ -49,13 +49,22 @@ KNOWN_APPS = [
     "spotify", "chrome", "discord", "youtube",
     "whatsapp", "twitch", "netflix", "safari",
     "vs code", "vscode", "terminal", "notepad",
-    "calculator", "settings", "finder"
+    "calculator", "settings", "finder",
+    "chat gpt", "chatgpt", "notes"
 ]
 
 MUSIC_GENRES = [
     "lo-fi", "lofi", "chill", "jazz", "hip hop",
     "classical", "rock", "pop", "ambient", "study"
 ]
+
+WORD_TO_NUM = {
+    "one": "1", "two": "2", "three": "3", "four": "4",
+    "five": "5", "six": "6", "seven": "7", "eight": "8",
+    "nine": "9", "ten": "10", "eleven": "11", "twelve": "12",
+    "fifteen": "15", "twenty": "20", "thirty": "30",
+    "forty": "40", "forty-five": "45", "sixty": "60"
+}
 
 
 # -------------------------
@@ -98,10 +107,13 @@ def _spacy_entities(text: str, doc) -> dict:
 # Regex fallback extraction
 # -------------------------
 def _regex_entities(text: str) -> dict:
-
     entities = {}
     text_lower = text.lower()
 
+    # Normalize word numbers to digits
+    for word, num in WORD_TO_NUM.items():
+        text_lower = re.sub(rf'\b{word}\b', num, text_lower)
+        
     # Duration — "5 minutes", "30 seconds", "1 hour"
     duration_match = re.search(
         r"\b(\d+)\s*(s|sec|secs|seconds?|m|min|mins|minutes?|h|hr|hrs|hours?)\b",
@@ -201,7 +213,8 @@ def _extract_topic(text: str, intent: str) -> dict:
         "search for ", "look up", "google", "find information about",
         "take a note", "write down", "note that", "note to self",
         "tell me about", "explain", "what is", "how does", "who is",
-        "text", "send a message to", "tell"
+        "text", "send a message to", "tell", "search for", "search google for", 
+        "search youtube for", "search on youtube for"
     ]
 
     cleaned = text.lower()

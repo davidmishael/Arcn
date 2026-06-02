@@ -15,6 +15,7 @@ INTENT_MAP = {
     ("open_app", "settings") : "open_settings",
     ("open_app", "vs code")  : "open_vscode",
     ("open_app", "vscode")   : "open_vscode",
+    ("open_app", "chat gpt") : "open_chatgpt",
 
     # close
     ("close_app", None)          : "close_app",
