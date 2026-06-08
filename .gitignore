@@ -64,3 +64,8 @@ pip-log.txt
 
 # Ruff
 .ruff_cache/
+
+# SQLite WAL files
+*.db-shm
+*.db-wal
+*.db
