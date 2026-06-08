@@ -171,6 +171,15 @@ def _regex_entities(text: str) -> dict:
     elif any(w in text_lower for w in ["celsius", "in c", "degrees c"]):
         entities["unit"] = "metric"
 
+    # Location fallback — "weather in <city>", "in london"
+    if "location" not in entities:
+        location_match = re.search(
+            r'\bin\s+([a-z][a-z\s]{1,20}?)(?:\?|$|\bin\b|\s+(?:today|tomorrow|tonight|now))',
+            text_lower
+        )
+        if location_match:
+            entities["location"] = location_match.group(1).strip()
+
     return entities
 
 
