@@ -20,32 +20,37 @@ cc  = CommandCenter(TOOLS)
 speak("Arcn online.")
 
 # Live loop
-while True:
+try:
+    while True:
 
-    text = listen()
+        text = listen()
 
-    if not text:
-        continue 
+        if not text:
+            continue
 
-    # Shutdown commands
-    SHUTDOWN_WORDS = ["goodbye", "shut down", "exit arcn", "stop arcn", "quit"]
+        # Shutdown commands
+        SHUTDOWN_WORDS = ["goodbye", "shut down", "exit arcn", "stop arcn", "quit"]
 
-    if any(word in text for word in SHUTDOWN_WORDS):
-        speak("Shutting down.")
-        break
+        if any(word in text for word in SHUTDOWN_WORDS):
+            speak("Shutting down.")
+            cc.shutdown()
+            break
 
-    # NLP processes
-    packet = nlp.predict(text)
-    packet["source"] = "nlp"
-    if "entities" not in packet:
-        packet["entities"] = {}
-    packet["entities"]["raw_text"] = text  # always inject, outside the if
+        # NLP processes
+        packet = nlp.predict(text)
+        packet["source"] = "nlp"
+        if "entities" not in packet:
+            packet["entities"] = {}
+        packet["entities"]["raw_text"] = text  # always inject, outside the if
 
+        # CC handles
+        result = cc.handle(packet)
 
-    # CC handles
-    result = cc.handle(packet)
+        # Speak the response
+        response = result.get("response", "")
+        if response:
+            speak(response)
 
-    # Speak the response
-    response = result.get("response", "")
-    if response:
-        speak(response)
+except KeyboardInterrupt:
+    print("\nInterrupted.")
+    cc.shutdown()

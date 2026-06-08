@@ -1,8 +1,15 @@
+import sys
+import os
+
+sys.path.append(os.path.abspath("../memory"))
+
 from router import Router
 from state import StateManager
+from memory_manager import MemoryManager
 
 
 # Intents that should ALWAYS take priority
+# These skip memory entirely — no DB read needed
 PRIORITY_INTENTS = {
     "stop_cancel", "greet", "how_are_you",
     "tell_time", "tell_date", "cancel_timer"
@@ -19,6 +26,9 @@ class CommandCenter:
         # State manages system-level state
         self.state = StateManager()
 
+        # Memory — persistent context across sessions
+        self.memory = MemoryManager()
+
     # -------------------------
     # Main entry point
     # -------------------------
@@ -29,14 +39,21 @@ class CommandCenter:
         entities   = packet.get("entities", {})
         requires_clarification = packet.get("requires_clarification", False)
 
-        # Priority intents always route directly
+        # -------------------------
+        # Priority intents skip
+        # memory entirely — fast path
+        # -------------------------
         if intent in PRIORITY_INTENTS:
             self.state.set_last_intent(intent)
             return self.router.route(intent, entities, source)
 
-        # If unknown or clarification but last was ask_question
+        # -------------------------
+        # Unknown / clarification
+        # handling — same as before
+        # -------------------------
         if intent == "unknown_intent" or requires_clarification:
             last = self.state.get_last_intent()
+
             if last == "ask_question":
                 intent = "ask_question"
                 requires_clarification = False
@@ -47,11 +64,36 @@ class CommandCenter:
 
             elif intent == "unknown_intent":
                 return self._unknown()
+
             else:
                 return self._clarify(intent, entities)
 
+        # -------------------------
+        # Memory injection point —
+        # enrich packet BEFORE routing
+        # -------------------------
+        packet = self.memory.enrich(packet)
+
+        # -------------------------
+        # Route to tool
+        # -------------------------
         self.state.set_last_intent(intent)
-        return self.router.route(intent, entities, source)
+        result = self.router.route(intent, packet["entities"], source)
+
+        # -------------------------
+        # Save turn to memory
+        # AFTER routing completes
+        # -------------------------
+        self.memory.save(packet, result.get("response", ""))
+
+        return result
+
+    # -------------------------
+    # Shutdown — close memory
+    # session cleanly
+    # -------------------------
+    def shutdown(self):
+        self.memory.close()
 
     # -------------------------
     # Clarification response
