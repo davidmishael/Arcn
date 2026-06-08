@@ -16,17 +16,14 @@ DEFAULT_CITY = "Chennai"
 def play_music(entities: dict = {}):
     os.system("open -a Spotify")
     os.system("osascript -e 'tell application \"Spotify\" to play'")
-    print("ARCN: Playing music")
     return "Playing music"
 
 def pause_music(entities: dict = {}):
     os.system("osascript -e 'tell application \"Spotify\" to playpause'")
-    print("ARCN: Paused")
     return "Paused"
 
 def skip_song(entities: dict = {}):
     os.system("osascript -e 'tell application \"Spotify\" to next track'")
-    print("ARCN: Skipped")
     return "Skipped"
 
 # -------------------------
@@ -236,18 +233,18 @@ def take_note(entities: dict = {}):
 def greet(entities: dict = {}):
     hour = datetime.datetime.now().hour
     if hour < 12:
-        print("ARCN: Good morning.")
+        return "Good morning."
     elif hour < 17:
-        print("ARCN: Good afternoon.")
+        return "Good afternoon."
     else:
-        print("ARCN: Good evening.")
+        return "Good evening."
 
 def how_are_you(entities: dict = {}):
-    print("ARCN: All systems running. How can I help?")
+    return "All systems running. How can I help?"
 
 def stop_cancel(entities: dict = {}):
-    print("ARCN: Understood, cancelling.")
     cancel_timer()
+    return "Understood, cancelling."
 
 
 # -------------------------
@@ -351,52 +348,65 @@ def ask_question(entities: dict = {}):
     import ollama
     global _conversation_history
 
-
-
     topic = (
         entities.get("topic", "")
         or entities.get("query", "")
         or entities.get("raw_text", "")
     )
 
+
     if not topic:
-        print("ARCN: What would you like to know?")
-        return
+        return "What would you like to know?"
 
-    print("ARCN: Thinking...")
+    # Pull persistent memory context from SQLite
+    memory_context = entities.get("memory_context", [])
 
-    # Add user message to history
+    # Build history from SQLite if in-session history is empty
+    # This restores context after a restart
+    if not _conversation_history and memory_context:
+        for turn in memory_context:
+            if turn["intent"] == "ask_question" and turn["raw_text"]:
+                _conversation_history.append({
+                    "role"   : "user",
+                    "content": turn["raw_text"]
+                })
+                if turn["response"]:
+                    _conversation_history.append({
+                        "role"   : "assistant",
+                        "content": turn["response"]
+                    })
+
+    # Add current user message
     _conversation_history.append({
-        "role": "user",
+        "role"   : "user",
         "content": topic
     })
 
     # Build full message list with system prompt
     messages = [
         {
-            "role": "system",
+            "role"   : "system",
             "content": "You are Arcn, a helpful personal AI assistant. Answer concisely and clearly. No markdown, no bullet points, just plain conversational responses."
         }
     ] + _conversation_history
 
     response = ollama.chat(
-        model="mistral",
-        messages=messages
+        model   = "mistral",
+        messages= messages
     )
 
     answer = response["message"]["content"]
 
-    # Add Arcn response to history
+    # Add response to in-session history
     _conversation_history.append({
-        "role": "assistant",
+        "role"   : "assistant",
         "content": answer
     })
 
-    # Keep history to last 10 turns so it doesn't grow forever
+    # Keep history to last 20 entries
     if len(_conversation_history) > 20:
         _conversation_history = _conversation_history[-20:]
 
-    print(f"ARCN: {answer}")
     return answer
 
 from time_parser import parse_reminder_time
@@ -412,7 +422,6 @@ def create_reminder(entities: dict = {}):
     if not entities.get("relative_time") and state.get_pending_date():
         entities["relative_time"] = state.get_pending_date()
 
-        #print(f"DEBUG ENTITIES BEFORE PARSE: {entities}")
 
     reminder_dt, needs_clarification = parse_reminder_time(entities, raw)
 
