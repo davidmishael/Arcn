@@ -1,5 +1,5 @@
-from html import entities
 import db
+from vector_store import VectorStore
 
 
 # -------------------------
@@ -28,6 +28,10 @@ class MemoryManager:
         # Start a new session for this run
         self.session_id = db.start_session()
 
+        # Boot the vector store — loads ChromaDB
+        # and the sentence-transformers model
+        self.vector_store = VectorStore()
+
         print(f"Memory: session {self.session_id} started")
 
     # -------------------------
@@ -37,10 +41,36 @@ class MemoryManager:
     # -------------------------
     def save(self, packet: dict, response: str):
 
-        # 1. Save the full turn to conversations
+        # 1. Save the full turn to SQLite
         db.save_turn(self.session_id, packet, response)
 
-        # 2. Passively extract preferences from entities
+        # 2. Get the row ID of the turn we just saved
+        # so we can use it as the vector store ID
+        recent = db.get_recent_turns(n=1)
+        if recent:
+            # get_recent_turns doesn't return id directly
+            # so we query for it separately
+            conn = db.get_connection()
+            row = conn.execute(
+                "SELECT id FROM conversations ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            conn.close()
+
+            if row:
+                turn_id = row["id"]
+                raw_text = packet.get("entities", {}).get("raw_text", "")
+                intent   = packet.get("intent", "")
+
+                # 3. Add to ChromaDB vector store
+                # only stores intents defined in VECTOR_INTENTS
+                self.vector_store.add(
+                    turn_id  = turn_id,
+                    raw_text = raw_text,
+                    intent   = intent,
+                    response = response
+                )
+
+        # 4. Passively extract preferences from entities
         self._extract_preferences(packet)
 
     # -------------------------
@@ -51,6 +81,7 @@ class MemoryManager:
     def enrich(self, packet: dict) -> dict:
 
         entities = packet.get("entities", {})
+        intent   = packet.get("intent", "")
 
         # Inject known preferences into entities
         # only if they aren't already present
@@ -65,11 +96,26 @@ class MemoryManager:
             elif pref_key == "default_unit" and "unit" not in entities:
                 entities["unit"] = pref_value
 
-        # Only fetch history for intents that need it
+        # Only fetch context for ask_question —
         # avoids unnecessary DB reads on every turn
-        if packet.get("intent") == "ask_question":
+        if intent == "ask_question":
+
+            raw_text = entities.get("raw_text", "")
+
+            # Recent turns from SQLite (last 6)
             entities["memory_context"] = db.get_recent_turns(n=6)
-            packet["entities"] = entities
+
+            # Semantically similar turns from ChromaDB
+            # finds relevant past turns even from weeks ago
+            if raw_text:
+                entities["semantic_context"] = self.vector_store.query(
+                    text = raw_text,
+                    n    = 3
+                )
+            else:
+                entities["semantic_context"] = []
+
+        packet["entities"] = entities
 
         return packet
 
@@ -89,7 +135,7 @@ class MemoryManager:
             value = entities.get(entity_key)
 
             if value:
-                # Write to DB — count is tracked inside update_preference
+                # Write to DB — count tracked inside update_preference
                 db.update_preference(pref_key, value)
 
     # -------------------------
