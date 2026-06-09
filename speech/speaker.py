@@ -1,26 +1,23 @@
-import os
-import asyncio
-import time
-import edge_tts
+import sounddevice as sd
+from kokoro import KPipeline
 
 
 # -------------------------
-# Config
+# Config — change voice here
 # -------------------------
-VOICE = "en-US-ChristopherNeural"
-AUDIO_FILE = "voice.mp3"
+VOICE       = "af_heart"  # options: af_heart, af_bella, af_sarah, am_adam, am_michael
+LANG_CODE   = "a"         # "a" = American English, "b" = British English
+SAMPLE_RATE = 24000
 
 
 # -------------------------
-# Async TTS core
+# Load Kokoro pipeline once
+# at import time — avoids
+# reloading on every speak()
 # -------------------------
-async def _speak_async(text: str):
-
-    communicate = edge_tts.Communicate(text, VOICE)
-    await communicate.save(AUDIO_FILE)
-    os.system(f"afplay {AUDIO_FILE}")
-    time.sleep(0.3)
-    os.remove(AUDIO_FILE)
+print("Loading Kokoro TTS...")
+_pipeline = KPipeline(lang_code=LANG_CODE)
+print("  Kokoro ready")
 
 
 # -------------------------
@@ -32,4 +29,23 @@ def speak(text: str):
         return
 
     print(f"Arcn: {text}")
-    asyncio.run(_speak_async(text))
+
+    import numpy as np
+
+    generator = _pipeline(text, voice=VOICE)
+    buffer = []
+
+    for gs, ps, audio in generator:
+        buffer.append(audio)
+
+        # Play in small batches of 3 chunks
+        # balances latency vs blip prevention
+        if len(buffer) >= 3:
+            sd.play(np.concatenate(buffer), samplerate=SAMPLE_RATE)
+            sd.wait()
+            buffer = []
+
+    # Play any remaining chunks
+    if buffer:
+        sd.play(np.concatenate(buffer), samplerate=SAMPLE_RATE)
+        sd.wait()
