@@ -354,15 +354,17 @@ def ask_question(entities: dict = {}):
         or entities.get("raw_text", "")
     )
 
-
     if not topic:
         return "What would you like to know?"
 
-    # Pull persistent memory context from SQLite
-    memory_context = entities.get("memory_context", [])
+    # Recent turns from SQLite
+    memory_context   = entities.get("memory_context", [])
 
-    # Build history from SQLite if in-session history is empty
-    # This restores context after a restart
+    # Semantically similar turns from ChromaDB
+    semantic_context = entities.get("semantic_context", [])
+
+    # Seed _conversation_history on fresh boot
+    # from SQLite recent turns if history is empty
     if not _conversation_history and memory_context:
         for turn in memory_context:
             if turn["intent"] == "ask_question" and turn["raw_text"]:
@@ -376,23 +378,44 @@ def ask_question(entities: dict = {}):
                         "content": turn["response"]
                     })
 
-    # Add current user message
+    # Build semantic context string from ChromaDB results
+    # injected into the system prompt so Mistral knows
+    # what relevant topics were discussed in the past
+    semantic_note = ""
+    if semantic_context:
+        lines = []
+        for turn in semantic_context:
+            if turn["raw_text"] and turn["response"]:
+                lines.append(
+                    f"Past topic: {turn['raw_text']} → {turn['response'][:120]}"
+                )
+        if lines:
+            semantic_note = "\n\nRelevant past conversations:\n" + "\n".join(lines)
+
+    # Add current user message to in-session history
     _conversation_history.append({
         "role"   : "user",
         "content": topic
     })
 
     # Build full message list with system prompt
+    # semantic_note appended to system prompt so Mistral
+    # has long-term context without cluttering the history
     messages = [
         {
             "role"   : "system",
-            "content": "You are Arcn, a helpful personal AI assistant. Answer concisely and clearly. No markdown, no bullet points, just plain conversational responses."
+            "content": (
+                "You are Arcn, a helpful personal AI assistant. "
+                "Answer concisely and clearly. "
+                "No markdown, no bullet points, just plain conversational responses."
+                + semantic_note
+            )
         }
     ] + _conversation_history
 
     response = ollama.chat(
-        model   = "mistral",
-        messages= messages
+        model    = "mistral",
+        messages = messages
     )
 
     answer = response["message"]["content"]
