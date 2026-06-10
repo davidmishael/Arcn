@@ -69,3 +69,6 @@ pip-log.txt
 *.db-shm
 *.db-wal
 *.db
+
+# ChromaDB vector store
+memory/chroma_store/
