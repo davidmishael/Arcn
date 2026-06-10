@@ -214,17 +214,19 @@ def tell_date(entities: dict = {}):
 def take_note(entities: dict = {}):
     topic = entities.get("topic", "")
     if not topic:
-        print("NOTE: Nothing to save")
-        return
+        return "What would you like me to note?"
 
-    notes_file = os.path.expanduser("~/Arcn/notes.txt")
-    timestamp  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    # Escape single quotes in topic so osascript doesn't break
+    safe_topic = topic.replace("'", "\\'")
 
-    with open(notes_file, "a") as f:
-        f.write(f"[{timestamp}] {topic}\n")
+    script = f"""
+    tell application "Notes"
+        make new note at folder "Notes" with properties {{name:"{safe_topic}", body:"{safe_topic}"}}
+    end tell
+    """
 
-    print(f"NOTE: Saved — {topic}")
-
+    os.system(f"osascript -e '{script}' > /dev/null 2>&1")
+    return f"Note saved — {topic}"
 
 # -------------------------
 # GREET + PERSONALITY
