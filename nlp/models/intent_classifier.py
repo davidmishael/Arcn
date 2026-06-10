@@ -11,8 +11,7 @@ import torch.nn.functional as F
 # -------------------------
 # Config
 # -------------------------
-MODEL_DIR = Path("models/intent_model")
-
+MODEL_DIR = Path(__file__).parent.parent / "models" / "intent_model"
 
 class IntentClassifier:
 
