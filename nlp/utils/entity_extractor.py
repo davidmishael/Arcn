@@ -223,7 +223,9 @@ def _extract_topic(text: str, intent: str) -> dict:
         "take a note", "write down", "note that", "note to self",
         "tell me about", "explain", "what is", "how does", "who is",
         "text", "send a message to", "tell", "search for", "search google for", 
-        "search youtube for", "search on youtube for"
+        "search youtube for", "search on youtube for", "take a note to",
+        "take a note about",
+        "jot down"
     ]
 
     cleaned = text.lower()
@@ -234,6 +236,12 @@ def _extract_topic(text: str, intent: str) -> dict:
     filler = ["could you", "can you", "please", "hey", "actually"]
     for word in filler:
         cleaned = cleaned.replace(word, "").strip()
+
+    # Strip leftover leading "to" after phrase removal
+    # e.g. "take a note to buy groceries" → "to buy groceries" → "buy groceries"
+    if cleaned.startswith("to "):
+        cleaned = cleaned[3:].strip()
+    
 
     # Strip time expressions from topic for reminders
     if intent == "create_reminder":

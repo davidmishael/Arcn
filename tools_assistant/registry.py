@@ -92,9 +92,8 @@ def mute_volume(entities: dict = {}):
     )
 
 def lock_mac(entities: dict = {}):
-    os.system(
-        "/System/Library/CoreServices/Menu\\ Extras/User.menu/Contents/Resources/CGSession -suspend"
-    )
+    os.system("osascript -e 'tell application \"System Events\" to keystroke \"q\" using {control down, command down}'")
+    return "Locking Mac."
 
 def increase_brightness(entities: dict = {}):
     os.system(
