@@ -62,6 +62,7 @@ INTENT_MAP = {
     ("send_message", None)       : "send_message",
     ("ask_question", None)       : "ask_question",
     ("create_reminder", None)    : "create_reminder",
+    ("lock_mac", None) : "lock_mac",
 }
 
 

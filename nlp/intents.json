@@ -413,5 +413,25 @@
       "what is the current date",
       "today is what day"
     ]
+  },
+
+  "lock_mac": {
+    "examples": [
+      "lock the mac",
+      "lock my computer",
+      "lock the screen",
+      "lock my mac",
+      "screen lock",
+      "lock the display",
+      "lock it",
+      "secure the screen",
+      "lock the machine",
+      "put the screen lock on",
+      "lock my screen",
+      "lock computer",
+      "secure my mac",
+      "lock down the mac",
+      "lock up the computer"
+    ]
   }
 }
