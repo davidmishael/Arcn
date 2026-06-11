@@ -53,7 +53,7 @@ def listen() -> str | None:
 
         print("\nListening...")
 
-        recognizer.adjust_for_ambient_noise(source, duration=1)
+        recognizer.adjust_for_ambient_noise(source, duration=0.3)
 
         try:
             audio = recognizer.listen(

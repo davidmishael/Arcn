@@ -19,6 +19,8 @@ cc  = CommandCenter(TOOLS)
 
 speak("Arcn online.")
 
+
+
 # Live loop
 try:
     while True:
@@ -36,6 +38,32 @@ try:
             cc.shutdown()
             break
 
+        import time
+
+        # NLP processes
+        t0 = time.time()
+        packet = nlp.predict(text)
+        print(f"NLP: {time.time() - t0:.2f}s")
+
+        packet["source"] = "nlp"
+        if "entities" not in packet:
+            packet["entities"] = {}
+        packet["entities"]["raw_text"] = text  # always inject, outside the if
+
+        # CC handles
+        t1 = time.time()
+        result = cc.handle(packet)
+        print(f"CC + tool: {time.time() - t1:.2f}s")
+
+        # Speak the response
+        t2 = time.time()
+        response = result.get("response", "")
+        if response:
+            speak(response)
+        print(f"TTS: {time.time() - t2:.2f}s")
+        print(f"Total: {time.time() - t0:.2f}s")
+
+        """
         # NLP processes
         packet = nlp.predict(text)
         packet["source"] = "nlp"
@@ -50,6 +78,7 @@ try:
         response = result.get("response", "")
         if response:
             speak(response)
+            """
 
 except KeyboardInterrupt:
     print("\nInterrupted.")
