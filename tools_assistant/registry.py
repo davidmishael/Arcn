@@ -221,7 +221,7 @@ def take_note(entities: dict = {}):
 
     script = f"""
     tell application "Notes"
-        make new note at folder "Notes" with properties {{name:"{safe_topic}", body:"{safe_topic}"}}
+        make new note at folder "Notes" with properties {{body:"{safe_topic}"}}
     end tell
     """
 
