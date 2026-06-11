@@ -110,7 +110,16 @@ class ContextManager:
             "actually",
             "wait no",
             "no make it",
-            "switch it to"
+            "switch it to",
+            "at ",
+            "by ",
+            "pm",
+            "am",
+            "o'clock",
+            "in the morning",
+            "in the evening",
+            "tonight",
+            "tomorrow at"
         ]
 
         text_lower = text.lower()

@@ -44,8 +44,13 @@ class CommandCenter:
         # memory entirely — fast path
         # -------------------------
         if intent in PRIORITY_INTENTS:
-            self.state.set_last_intent(intent)
-            return self.router.route(intent, entities, source)
+            # If a reminder is pending, a time response takes priority
+            # over tell_time — user is answering our clarification question
+            if intent == "tell_time" and self.state.get_pending_reminder():
+                intent = "create_reminder"
+            else:
+                self.state.set_last_intent(intent)
+                return self.router.route(intent, entities, source)
 
         # -------------------------
         # Unknown / clarification
