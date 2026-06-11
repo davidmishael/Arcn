@@ -212,20 +212,49 @@ def _extract_topic(text: str, intent: str) -> dict:
         return entities
 
     strip_phrases = [
-        "could you remind me to",
-        "could you remind me about",
-        "can you remind me to",
-        "can you remind me about",
-        "please remind me to",
-        "please remind me about",
-        "remind me to", "remind me about", "remind me",
-        "search for ", "look up", "google", "find information about",
-        "take a note", "write down", "note that", "note to self",
-        "tell me about", "explain", "what is", "how does", "who is",
-        "text", "send a message to", "tell", "search for", "search google for", 
-        "search youtube for", "search on youtube for", "take a note to",
-        "take a note about",
-        "jot down"
+    # Reminders
+    "could you remind me to",
+    "could you remind me about",
+    "can you remind me to",
+    "can you remind me about",
+    "please remind me to",
+    "please remind me about",
+    "remind me to",
+    "remind me about",
+    "remind me",
+
+    # Notes
+    "make a note to",
+    "make a note about",
+    "make a note",
+    "take a note to",
+    "take a note about",
+    "take a note",
+    "write down",
+    "note that",
+    "note to self",
+    "jot down",
+
+    # Search
+    "search youtube for",
+    "search google for",
+    "search on youtube for",
+    "find information about",
+    "search for",
+    "look up",
+    "google",
+
+    # Questions
+    "tell me about",
+    "how does",
+    "what is",
+    "who is",
+    "explain",
+
+    # Messages
+    "send a message to",
+    "text",
+    "tell",
     ]
 
     cleaned = text.lower()
