@@ -60,6 +60,12 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_conversations_id 
         ON conversations(id DESC);
 
+        CREATE TABLE IF NOT EXISTS state (
+            key        TEXT PRIMARY KEY,
+            value      TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
     """)
 
     conn.commit()
@@ -208,6 +214,44 @@ def get_recent_turns(n: int = 10) -> list:
         })
 
     return list(reversed(turns))  # oldest first
+
+# -------------------------
+# State management
+# -------------------------
+def get_state_value(key: str, default=None):
+    """Read a single state value by key."""
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT value FROM state WHERE key = ?", (key,)
+    ).fetchone()
+    conn.close()
+    return row["value"] if row else default
+
+
+def set_state_value(key: str, value: str):
+    """Write a state value — inserts or updates."""
+    conn = get_connection()
+    conn.execute(
+        """
+        INSERT INTO state (key, value, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+            value      = excluded.value,
+            updated_at = excluded.updated_at
+        """,
+        (key, str(value), datetime.now().isoformat())
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_state_value(key: str):
+    """Remove a state key entirely."""
+    conn = get_connection()
+    conn.execute("DELETE FROM state WHERE key = ?", (key,))
+    conn.commit()
+    conn.close()
+
 
 
 if __name__ == "__main__":

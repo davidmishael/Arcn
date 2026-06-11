@@ -1,103 +1,76 @@
-import json
+import sys
 import os
 
+# -------------------------
+# Point to memory module so
+# we can import db directly
+# -------------------------
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../memory")))
 
-STATE_FILE = "assistant_state.json"
+import db
 
 
 class StateManager:
 
     def __init__(self):
+        # Ensure the state table exists
+        # init_db is safe to call multiple times — uses CREATE IF NOT EXISTS
+        db.init_db()
 
-        # Boot with default state if file doesn't exist
-        if not os.path.exists(STATE_FILE):
-            self._write({"listening": True})
-
-    # -------------------------
-    # Get full state
-    # -------------------------
-    def get_state(self) -> dict:
-
-        try:
-            with open(STATE_FILE, "r") as f:
-                return json.load(f)
-
-        except Exception:
-            return {"listening": True}
+        # Boot default state if keys don't exist yet
+        if db.get_state_value("listening") is None:
+            db.set_state_value("listening", "true")
 
     # -------------------------
     # Check if listening
     # -------------------------
     def is_listening(self) -> bool:
-
-        return self.get_state().get("listening", True)
+        return db.get_state_value("listening", "true") == "true"
 
     # -------------------------
     # Set listening on/off
     # -------------------------
     def set_listening(self, value: bool):
-
-        state = self.get_state()
-        state["listening"] = value
-        self._write(state)
+        db.set_state_value("listening", "true" if value else "false")
 
     # -------------------------
     # Toggle listening
     # -------------------------
     def toggle_listening(self) -> bool:
-
         current = self.is_listening()
-        new     = not current
+        new = not current
         self.set_listening(new)
         return new
-
-    # -------------------------
-    # Write state to disk
-    # -------------------------
-    def _write(self, state: dict):
-
-        with open(STATE_FILE, "w") as f:
-            json.dump(state, f, indent=4)
 
     # -------------------------
     # Track last intent
     # -------------------------
     def set_last_intent(self, intent: str):
-        state = self.get_state()
-        state["last_intent"] = intent
-        self._write(state)
+        db.set_state_value("last_intent", intent)
 
     def get_last_intent(self) -> str:
-        return self.get_state().get("last_intent", "")
+        return db.get_state_value("last_intent", "")
 
     # -------------------------
     # Pending reminder topic
     # -------------------------
     def set_pending_reminder(self, topic: str):
-        state = self.get_state()
-        state["pending_reminder_topic"] = topic
-        self._write(state)
+        db.set_state_value("pending_reminder_topic", topic)
 
     def get_pending_reminder(self) -> str:
-        return self.get_state().get("pending_reminder_topic", "")
+        return db.get_state_value("pending_reminder_topic", "")
 
     def clear_pending_reminder(self):
-        state = self.get_state()
-        state.pop("pending_reminder_topic", None)
-        self._write(state)
+        db.delete_state_value("pending_reminder_topic")
 
     # -------------------------
     # Pending reminder date
     # -------------------------
     def set_pending_date(self, relative_time: str):
-        state = self.get_state()
-        state["pending_reminder_date"] = relative_time
-        self._write(state)
+        db.set_state_value("pending_reminder_date", relative_time)
 
     def get_pending_date(self) -> str:
-        return self.get_state().get("pending_reminder_date", "")
+        return db.get_state_value("pending_reminder_date", "")
 
     def clear_pending_date(self):
-        state = self.get_state()
-        state.pop("pending_reminder_date", None)
-        self._write(state)
+        db.delete_state_value("pending_reminder_date")
