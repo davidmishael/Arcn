@@ -17,19 +17,12 @@ sys.path.append(os.path.join(ROOT, "tools_assistant"))
 sys.path.append(os.path.join(ROOT, "speech"))
 sys.path.append(os.path.join(ROOT, "memory"))
 
-# -------------------------
-# The intent classifier loads
-# its model from a relative path
-# "models/intent_model/" — so we
-# must set cwd to nlp/ before
-# importing NLPBrain
-# -------------------------
-
 from pipeline import NLPBrain
 from core import CommandCenter
 from registry import TOOLS
 from speaker import speak
 from listener import listen
+from wake_word import load_wake_word_model, wait_for_wake_word
 
 
 # -------------------------
@@ -37,6 +30,10 @@ from listener import listen
 # -------------------------
 nlp = NLPBrain()
 cc  = CommandCenter(TOOLS)
+
+# Load wake word model once at boot —
+# stays in memory for the entire session
+ww_model, ww_config, ww_device = load_wake_word_model()
 
 speak("Arcn online.")
 
@@ -52,9 +49,16 @@ SHUTDOWN_WORDS = ["goodbye", "shut down", "exit arcn", "stop arcn", "quit"]
 try:
     while True:
 
+        # Wait for "Hey Arcn" before doing anything
+        # Blocks here until wake word detected —
+        # tone plays, then mic is released for listener
+        wait_for_wake_word(ww_model, ww_config, ww_device)
+
+        # Wake word fired — now transcribe what the user says
         text = listen()
 
         if not text:
+            # Heard wake word but nothing after — go back to listening
             continue
 
         # Check for shutdown command

@@ -72,3 +72,7 @@ pip-log.txt
 
 # ChromaDB vector store
 memory/chroma_store/
+
+#speech data and models
+speech/wake_word_data/
+speech/wake_word_model/
