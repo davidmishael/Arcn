@@ -59,6 +59,7 @@ try:
 
         if not text:
             # Heard wake word but nothing after — go back to listening
+            speak("I didn't catch that.")
             continue
 
         # Check for shutdown command

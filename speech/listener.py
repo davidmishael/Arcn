@@ -1,5 +1,4 @@
 import json
-import time
 import speech_recognition as sr
 from faster_whisper import WhisperModel
 
@@ -10,9 +9,8 @@ from faster_whisper import WhisperModel
 WHISPER_MODEL    = "small"
 COMPUTE_TYPE     = "int8"
 ENERGY_THRESHOLD = 400
-TIMEOUT          = 8
+TIMEOUT          = 5
 PHRASE_LIMIT     = 6
-STATE_FILE       = "assistant_state.json"
 
 
 # -------------------------
@@ -27,17 +25,6 @@ recognizer.energy_threshold        = ENERGY_THRESHOLD
 recognizer.dynamic_energy_threshold = False
 
 
-# -------------------------
-# Check listening state
-# -------------------------
-def is_listening_enabled() -> bool:
-
-    try:
-        with open(STATE_FILE, "r") as f:
-            data = json.load(f)
-            return data.get("listening", True)
-    except Exception:
-        return True
 
 
 # -------------------------
@@ -45,9 +32,6 @@ def is_listening_enabled() -> bool:
 # -------------------------
 def listen() -> str | None:
 
-    if not is_listening_enabled():
-        time.sleep(0.3)
-        return None
 
     with sr.Microphone() as source:
 
@@ -64,9 +48,7 @@ def listen() -> str | None:
         except sr.WaitTimeoutError:
             return None
 
-    # Check again after recording
-    if not is_listening_enabled():
-        return None
+    
 
     try:
         with open("audio.wav", "wb") as f:

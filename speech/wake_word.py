@@ -13,7 +13,7 @@ from pathlib import Path
 # Config
 # -------------------------
 MODEL_DIR         = Path(__file__).parent / "wake_word_model"
-THRESHOLD         = 0.85     # confidence required to trigger
+THRESHOLD         = 0.90     # confidence required to trigger
 CONFIRMATION_TONE = True     # set False to disable the hum sound on trigger
 TONE_DURATION     = 0.18     # seconds — length of confirmation tone
 TONE_FREQ_START   = 440      # Hz — starting frequency of ascending tone
@@ -168,6 +168,8 @@ def wait_for_wake_word(model, config, device):
         blocksize  = hop_samples,
         callback   = callback
     ):
+        time.sleep(2.0)  # flush hardware buffer and TTS tail before detection starts
+
         while True:
             time.sleep(0.5)
 
