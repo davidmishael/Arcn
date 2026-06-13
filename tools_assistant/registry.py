@@ -46,6 +46,9 @@ def open_google(entities: dict = {}):
 def open_chatgpt(entities: dict = {}):
     os.system("open -a 'Google Chrome' 'https://chatgpt.com'")
 
+def open_spotify(entities: dict = {}):
+    os.system("open -a Spotify")
+
 
 # -------------------------
 # APP TOOLS
@@ -494,6 +497,7 @@ TOOLS = {
     "open_finder"       : {"function": open_finder,        "confirmation": "Opening Finder",             "type": "app"},
     "open_settings"     : {"function": open_settings,      "confirmation": "Opening Settings",           "type": "app"},
     "open_vscode"       : {"function": open_vscode,        "confirmation": "Opening VS Code",            "type": "app"},
+    "open_spotify"      : {"function": open_spotify,       "confirmation": "Opening Spotify",            "type": "app"},
 
     # CONTROLS
     "close_app"         : {"function": close_app,          "confirmation": "Closing current app",        "type": "control"},
