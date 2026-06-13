@@ -15,10 +15,10 @@ from pathlib import Path
 MODEL_DIR         = Path(__file__).parent / "wake_word_model"
 THRESHOLD         = 0.90     # confidence required to trigger
 CONFIRMATION_TONE = True     # set False to disable the hum sound on trigger
-TONE_DURATION     = 0.18     # seconds — length of confirmation tone
-TONE_FREQ_START   = 440      # Hz — starting frequency of ascending tone
-TONE_FREQ_END     = 660      # Hz — ending frequency of ascending tone
-SAMPLE_RATE_OUT   = 24000    # output sample rate for tone playback
+TONE_DURATION   = 0.25       # slightly longer for a rounder feel
+TONE_FREQ_START = 180        # Hz — low warm hum
+TONE_FREQ_END   = 260        # Hz — gentle rise, not a whir
+SAMPLE_RATE_OUT = 24000
 
 
 # -------------------------
@@ -59,17 +59,20 @@ def _play_confirmation_tone():
 
     t    = np.linspace(0, TONE_DURATION, int(SAMPLE_RATE_OUT * TONE_DURATION))
     freq = np.linspace(TONE_FREQ_START, TONE_FREQ_END, len(t))
-    tone = np.sin(2 * np.pi * freq * t)
 
-    # Fade in and out to avoid clicks
-    fade_samples         = int(SAMPLE_RATE_OUT * 0.02)
-    tone[:fade_samples]  *= np.linspace(0, 1, fade_samples)
-    tone[-fade_samples:] *= np.linspace(1, 0, fade_samples)
+    # Primary sine + soft harmonic for warmth
+    tone = 0.7 * np.sin(2 * np.pi * freq * t) + \
+           0.3 * np.sin(2 * np.pi * freq * 2 * t)
 
-    tone = (tone * 0.4).astype(np.float32)
+    # Longer fade in, sharper fade out — feels more intentional
+    fade_in_samples          = int(SAMPLE_RATE_OUT * 0.06)
+    fade_out_samples         = int(SAMPLE_RATE_OUT * 0.04)
+    tone[:fade_in_samples]  *= np.linspace(0, 1, fade_in_samples)
+    tone[-fade_out_samples:] *= np.linspace(1, 0, fade_out_samples)
+
+    tone = (tone * 0.35).astype(np.float32)
     sd.play(tone, samplerate=SAMPLE_RATE_OUT)
     sd.wait()
-
 
 # -------------------------
 # Audio chunk → mel → tensor
@@ -183,4 +186,5 @@ def wait_for_wake_word(model, config, device):
             if confidence >= THRESHOLD:
                 print(f"Wake word detected — confidence: {confidence:.3f}")
                 _play_confirmation_tone()
+                time.sleep(0.3)  # let audio device release before TTS opens
                 return   # hand off to listener.py

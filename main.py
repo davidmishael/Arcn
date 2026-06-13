@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 # -------------------------
 # Add all module paths so
@@ -34,6 +35,8 @@ cc  = CommandCenter(TOOLS)
 # Load wake word model once at boot —
 # stays in memory for the entire session
 ww_model, ww_config, ww_device = load_wake_word_model()
+
+time.sleep(1.0)  # let PortAudio initialise cleanly before first TTS call
 
 speak("Arcn online.")
 
