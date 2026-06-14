@@ -1,13 +1,8 @@
 import sys
 import os
 import time
+import threading
 
-# -------------------------
-# Add all module paths so
-# Python can find each module
-# regardless of where main.py
-# is run from
-# -------------------------
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.join(ROOT, "nlp"))
@@ -18,76 +13,125 @@ sys.path.append(os.path.join(ROOT, "tools_assistant"))
 sys.path.append(os.path.join(ROOT, "speech"))
 sys.path.append(os.path.join(ROOT, "memory"))
 
+import webview
+
 from pipeline import NLPBrain
 from core import CommandCenter
 from registry import TOOLS
 from speaker import speak
 from listener import listen
 from wake_word import load_wake_word_model, wait_for_wake_word
-
+from ui.window_manager import create_window
+from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response
+from ui.state_server import start as start_state_server, set_state_source, set_last_response, set_icon_path
 
 # -------------------------
-# Boot all modules
+# Shared state
+# -------------------------
+sys.path.append(os.path.join(ROOT, "ui"))
+
+# We need AssistantState — define it here since menu_bar.py no longer has rumps
+class AssistantState:
+    def __init__(self):
+        import threading
+        self._state = "idle"
+        self._lock  = threading.Lock()
+    def set(self, s):
+        with self._lock: self._state = s
+    def get(self):
+        with self._lock: return self._state
+
+state = AssistantState()
+
+# -------------------------
+# Icon path
+# -------------------------
+ICON_PATH = os.path.join(ROOT, "assets", "arcn_icon.png")
+
+# -------------------------
+# Boot modules
 # -------------------------
 nlp = NLPBrain()
 cc  = CommandCenter(TOOLS)
-
-# Load wake word model once at boot —
-# stays in memory for the entire session
 ww_model, ww_config, ww_device = load_wake_word_model()
 
-time.sleep(1.0)  # let PortAudio initialise cleanly before first TTS call
-
-speak("Arcn online.")
-
-# -------------------------
-# Words that trigger shutdown
-# -------------------------
 SHUTDOWN_WORDS = ["goodbye", "shut down", "exit arcn", "stop arcn", "quit"]
 
+# -------------------------
+# State server
+# -------------------------
+set_state_source(state)
+start_state_server()
+set_icon_path(ICON_PATH)
 
 # -------------------------
-# Main loop
+# Assistant loop
 # -------------------------
-try:
-    while True:
+def assistant_loop():
+    time.sleep(1.5)  # let pywebview window fully load
+    speak("Arcn online.")
 
-        # Wait for "Hey Arcn" before doing anything
-        # Blocks here until wake word detected —
-        # tone plays, then mic is released for listener
-        wait_for_wake_word(ww_model, ww_config, ww_device)
+    try:
+        while True:
+            state.set("idle")
+            wait_for_wake_word(ww_model, ww_config, ww_device)
 
-        # Wake word fired — now transcribe what the user says
-        text = listen()
+            state.set("listening")
+            text = listen()
 
-        if not text:
-            # Heard wake word but nothing after — go back to listening
-            speak("I didn't catch that.")
-            continue
+            if not text:
+                speak("I didn't catch that.")
+                continue
 
-        # Check for shutdown command
-        if any(word in text for word in SHUTDOWN_WORDS):
-            speak("Shutting down.")
-            cc.shutdown()
-            break
+            if any(word in text for word in SHUTDOWN_WORDS):
+                speak("Shutting down.")
+                cc.shutdown()
+                import AppKit
+                AppKit.NSApplication.sharedApplication().terminate_(None)
+                break
 
-        # NLP processes the raw text into a structured packet
-        packet = nlp.predict(text)
-        packet["source"] = "nlp"
+            state.set("processing")
+            packet = nlp.predict(text)
+            set_last_intent(packet.get("intent", ""))
+            packet["source"] = "nlp"
 
-        # Ensure entities dict exists then inject raw text
-        if "entities" not in packet:
-            packet["entities"] = {}
-        packet["entities"]["raw_text"] = text
+            if "entities" not in packet:
+                packet["entities"] = {}
+            packet["entities"]["raw_text"] = text
 
-        # Command Center routes and executes
-        result = cc.handle(packet)
+            result = cc.handle(packet)
 
-        # Speak the response if there is one
-        response = result.get("response", "")
-        if response:
-            speak(response)
+            response = result.get("response", "")
+            if response:
+                state.set("speaking")
+                set_last_response(response)
+                speak(response)
 
-except KeyboardInterrupt:
-    print("\nInterrupted.")
-    cc.shutdown()
+    except KeyboardInterrupt:
+        print("\nInterrupted.")
+        cc.shutdown()
+
+# -------------------------
+# Create pywebview window
+# -------------------------
+win, api = create_window(ICON_PATH)
+
+# -------------------------
+# Start assistant + menu bar
+# in background threads
+# -------------------------
+def post_start():
+    """Runs after pywebview is ready."""
+    time.sleep(2.0)  # wait for NSApplication to fully init
+    assistant_loop()
+    
+def on_webview_started():
+    t = threading.Thread(target=assistant_loop, daemon=True)
+    t.start()
+
+webview.start(on_webview_started)
+
+# -------------------------
+# pywebview owns main thread
+# -------------------------
+#webview.start()
