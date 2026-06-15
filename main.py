@@ -12,6 +12,7 @@ sys.path.append(os.path.join(ROOT, "command_center"))
 sys.path.append(os.path.join(ROOT, "tools_assistant"))
 sys.path.append(os.path.join(ROOT, "speech"))
 sys.path.append(os.path.join(ROOT, "memory"))
+sys.path.append(os.path.join(ROOT, "proactive"))  # proactive engine on path
 
 import webview
 
@@ -24,6 +25,7 @@ from wake_word import load_wake_word_model, wait_for_wake_word
 from ui.window_manager import create_window
 from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response
 from ui.state_server import start as start_state_server, set_state_source, set_last_response, set_icon_path
+import engine as proactive_engine  # proactive engine
 
 # -------------------------
 # Shared state
@@ -110,12 +112,10 @@ def assistant_loop():
                     state.set("speaking")
                     set_last_response(response)
                     speak(response)
-                    
+
                 # stay in loop only if tool explicitly expects follow-up
                 if not result.get("expects_followup", False):
                     break
-
-                
 
                 # ── stay in conversation window after response ──
                 # inner while continues — listens again immediately
@@ -131,21 +131,25 @@ def assistant_loop():
 win, api = create_window(ICON_PATH)
 
 # -------------------------
-# Start assistant + menu bar
-# in background threads
+# Start assistant + proactive engine
+# in background threads after webview ready
 # -------------------------
 def post_start():
     """Runs after pywebview is ready."""
     time.sleep(2.0)  # wait for NSApplication to fully init
     assistant_loop()
-    
+
 def on_webview_started():
+    # Assistant loop — daemon thread
     t = threading.Thread(target=assistant_loop, daemon=True)
     t.start()
+
+    # Proactive engine — daemon thread
+    # starts inside engine.py with its own 10s boot delay
+    proactive_engine.start()
 
 webview.start(on_webview_started)
 
 # -------------------------
 # pywebview owns main thread
 # -------------------------
-#webview.start()
