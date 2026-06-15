@@ -13,7 +13,7 @@ from pathlib import Path
 # Config
 # -------------------------
 MODEL_DIR         = Path(__file__).parent / "wake_word_model"
-THRESHOLD         = 0.90     # confidence required to trigger
+THRESHOLD         = 0.88    # confidence required to trigger
 CONFIRMATION_TONE = True     # set False to disable the hum sound on trigger
 TONE_DURATION   = 0.25       # slightly longer for a rounder feel
 TONE_FREQ_START = 180        # Hz — low warm hum
@@ -175,6 +175,7 @@ def wait_for_wake_word(model, config, device):
 
         while True:
             time.sleep(0.5)
+            
 
             tensor = _preprocess(buffer.copy(), config)
 
@@ -183,6 +184,7 @@ def wait_for_wake_word(model, config, device):
                 confidence = torch.sigmoid(logit).item()
 
             # Confidence threshold
+            #print(f"confidence: {confidence:.3f}")
             if confidence >= THRESHOLD:
                 print(f"Wake word detected — confidence: {confidence:.3f}")
                 _play_confirmation_tone()

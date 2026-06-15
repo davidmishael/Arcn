@@ -25,6 +25,11 @@ recognizer.energy_threshold         = ENERGY_THRESHOLD
 recognizer.dynamic_energy_threshold = False
 
 
+def calibrate():
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source, duration=1.0)
+    print("  Mic calibrated")
+
 # -------------------------
 # Listen + transcribe
 # -------------------------
@@ -32,7 +37,6 @@ def listen() -> str | None:
 
     with sr.Microphone() as source:
         print("\nListening...")
-        recognizer.adjust_for_ambient_noise(source, duration=0.3)
 
         try:
             audio = recognizer.listen(

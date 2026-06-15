@@ -68,44 +68,52 @@ set_icon_path(ICON_PATH)
 # Assistant loop
 # -------------------------
 def assistant_loop():
-    time.sleep(1.5)  # let pywebview window fully load
+    time.sleep(1.5)
     speak("Arcn online.")
 
     try:
         while True:
             state.set("idle")
+
+            # ── wait for wake word ──
             wait_for_wake_word(ww_model, ww_config, ww_device)
 
-            state.set("listening")
-            text = listen()
+            # ── conversation loop — stays active until silence ──
+            while True:
+                state.set("listening")
+                text = listen()
 
-            if not text:
-                speak("I didn't catch that.")
-                continue
+                if not text:
+                    # nothing heard — drop back to wake word
+                    break
 
-            if any(word in text for word in SHUTDOWN_WORDS):
-                speak("Shutting down.")
-                cc.shutdown()
-                import AppKit
-                AppKit.NSApplication.sharedApplication().terminate_(None)
-                break
+                if any(word in text for word in SHUTDOWN_WORDS):
+                    speak("Shutting down.")
+                    cc.shutdown()
+                    import AppKit
+                    AppKit.NSApplication.sharedApplication().terminate_(None)
+                    return
 
-            state.set("processing")
-            packet = nlp.predict(text)
-            set_last_intent(packet.get("intent", ""))
-            packet["source"] = "nlp"
+                state.set("processing")
+                packet = nlp.predict(text)
+                packet["source"] = "nlp"
 
-            if "entities" not in packet:
-                packet["entities"] = {}
-            packet["entities"]["raw_text"] = text
+                if "entities" not in packet:
+                    packet["entities"] = {}
+                packet["entities"]["raw_text"] = text
 
-            result = cc.handle(packet)
+                set_last_intent(packet.get("intent", ""))
+                result = cc.handle(packet)
 
-            response = result.get("response", "")
-            if response:
-                state.set("speaking")
-                set_last_response(response)
-                speak(response)
+                response = result.get("response", "")
+                if response:
+                    state.set("speaking")
+                    set_last_response(response)
+                    speak(response)
+
+                # ── stay in conversation window after response ──
+                # inner while continues — listens again immediately
+                # listen() timeout (4s) is the natural exit if silence
 
     except KeyboardInterrupt:
         print("\nInterrupted.")

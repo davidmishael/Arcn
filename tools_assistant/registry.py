@@ -5,6 +5,7 @@ import threading
 import datetime
 from dotenv import load_dotenv
 import requests
+import random
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
@@ -230,26 +231,60 @@ def take_note(entities: dict = {}):
     os.system(f"osascript -e '{script}' > /dev/null 2>&1")
     return f"Note saved — {topic}"
 
+import random
+
 # -------------------------
 # GREET + PERSONALITY
 # -------------------------
 
 def greet(entities: dict = {}):
     hour = datetime.datetime.now().hour
-    if hour < 12:
-        return "Good morning."
+    if hour < 6:
+        greetings = [
+            "You're up early. Or very late. Either way, I'm here.",
+            "It's the middle of the night. This better be important.",
+        ]
+    elif hour < 12:
+        greetings = [
+            "Morning. Let's make it count.",
+            "Good morning. I've been waiting.",
+            "Morning. Coffee first, or shall we get straight to it?",
+        ]
     elif hour < 17:
-        return "Good afternoon."
+        greetings = [
+            "Afternoon. What do you need?",
+            "Back again. What are we solving?",
+            "Good afternoon. I'm listening.",
+        ]
     else:
-        return "Good evening."
+        greetings = [
+            "Evening. Long day?",
+            "Good evening. Still at it, I see.",
+            "Evening. What's on your mind?",
+        ]
+    return random.choice(greetings)
+
 
 def how_are_you(entities: dict = {}):
-    return "All systems running. How can I help?"
+    responses = [
+        "Running clean, no complaints. You?",
+        "Fully operational and mildly bored until now.",
+        "Better now that you're here. What do we need to do?",
+        "Everything's nominal. More importantly — what do you need?",
+        "I don't sleep, I don't eat, I don't complain. I'm perfect. What about you?",
+    ]
+    return random.choice(responses)
+
 
 def stop_cancel(entities: dict = {}):
     cancel_timer()
-    return "Understood, cancelling."
-
+    responses = [
+        "Done. Gone.",
+        "Cancelled. Moving on.",
+        "Stopped. What's next?",
+        "Consider it forgotten.",
+    ]
+    return random.choice(responses)
 
 # -------------------------
 # MODES

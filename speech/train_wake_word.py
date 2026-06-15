@@ -188,6 +188,7 @@ def train():
 
     # Load data
     features, labels = load_dataset()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Train / validation split
     X_train, X_val, y_train, y_val = train_test_split(
@@ -214,6 +215,11 @@ def train():
     model = WakeWordModel().to(device)
 
     # Loss — binary cross entropy for 0/1 classification
+    import numpy as np
+
+    num_neg = (np.array(labels) == 0).sum()
+    num_pos = (np.array(labels) == 1).sum()
+    pos_weight = torch.tensor([num_neg / num_pos], dtype=torch.float32).to(device)
     criterion = nn.BCEWithLogitsLoss()
 
     # Optimizer + scheduler
