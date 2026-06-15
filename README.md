@@ -104,7 +104,7 @@ The execution layer. A registry of 30+ real actions the system can take.
 ### Speech Module
 Voice I/O and wake word detection.
 
-- **Wake word** — always-on tiny CNN, mel spectrogram input, trained on your voice only. Confidence threshold 0.90. Model and training architecture kept in sync (`wake_word.py` ↔ `train_wake_word.py`)
+- **Wake word** — always-on tiny CNN, mel spectrogram input, trained on your voice only. Confidence threshold 0.88. Model and training architecture kept in sync (`wake_word.py` ↔ `train_wake_word.py`)
 - **Input** — faster-whisper (small model, int8), energy threshold 600, 4s timeout
 - **Output** — Kokoro TTS, `af_heart` voice, 24000Hz, chunked streaming, PyTorch
 
@@ -125,8 +125,9 @@ Voice I/O and wake word detection.
 - [x] lock_mac intent wired up
 - [x] SQLite state — replaces `assistant_state.json`
 - [x] Wake word detection — always-on CNN, user-voice-trained
+- [x] pywebview UI — Sheikah-inspired SVG rings, state-driven animations
 - [ ] send_message — iMessage via phone number mapping
-- [ ] Menu bar UI — rumps icon + pywebview window, arachnid theme, real-time state
+- [ ] Menu bar icon — deferred to .app packaging phase
 - [ ] Cancel/modify reminders
 - [ ] Proactive engine — schedule-aware, condition-triggered assistant actions
 - [ ] Computer Vision — gesture recognition, screen analysis via LLaVA
@@ -198,7 +199,7 @@ python3 main.py
 
 ## Status
 
-Core pipeline fully operational end-to-end: wake word → Whisper → NLP → Command Center → Tools → Kokoro TTS. Memory is complete — SQLite tracks full conversation history, preferences, and system state across sessions; ChromaDB enables semantic recall of relevant past conversations. Mistral restores prior context on every boot. Wake word detector trained and integrated.
+Core pipeline fully operational end-to-end: wake word → Whisper → NLP → Command Center → Tools → Kokoro TTS. Memory is complete — SQLite tracks full conversation history, preferences, and system state across sessions; ChromaDB enables semantic recall of relevant past conversations. Mistral restores prior context on every boot. Wake word detector trained and integrated. pywebview UI live with state-driven Sheikah-inspired animations.
 
 Everything from here builds toward a proactive, memory-driven assistant that acts on your behalf without being asked.
 
