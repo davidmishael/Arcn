@@ -110,6 +110,12 @@ def assistant_loop():
                     state.set("speaking")
                     set_last_response(response)
                     speak(response)
+                    
+                # stay in loop only if tool explicitly expects follow-up
+                if not result.get("expects_followup", False):
+                    break
+
+                
 
                 # ── stay in conversation window after response ──
                 # inner while continues — listens again immediately

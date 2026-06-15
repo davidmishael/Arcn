@@ -117,26 +117,25 @@ class Router:
             return self._no_tool(intent)
 
         try:
-            result = tool["function"](entities)
-
-            # Use returned value as response if available
-            # otherwise fall back to confirmation string
+            result   = tool["function"](entities)
             response = result if isinstance(result, str) and result else tool.get("confirmation", "Done.")
 
-            return self._response(
-                status       = "executed",
-                intent       = intent,
-                response     = response,
-                action_taken = True
-            )
+            return {
+                "status"          : "executed",
+                "intent"          : intent,
+                "response"        : response,
+                "action_taken"    : True,
+                "expects_followup": tool.get("expects_followup", False),
+            }
 
         except Exception as e:
-            return self._response(
-                status       = "failed",
-                intent       = intent,
-                response     = f"Something went wrong: {e}",
-                action_taken = False
-            )
+            return {
+                "status"          : "failed",
+                "intent"          : intent,
+                "response"        : f"Something went wrong: {e}",
+                "action_taken"    : False,
+                "expects_followup": False,
+            }
 
     # -------------------------
     # No matching tool found
@@ -150,20 +149,3 @@ class Router:
             action_taken = False
         )
 
-    # -------------------------
-    # Standard response packet
-    # -------------------------
-    def _response(
-        self,
-        status      : str,
-        intent      : str,
-        response    : str,
-        action_taken: bool
-    ) -> dict:
-
-        return {
-            "status"      : status,
-            "intent"      : intent,
-            "response"    : response,
-            "action_taken": action_taken
-        }
