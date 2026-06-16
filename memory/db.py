@@ -102,7 +102,14 @@ def end_session(session_id: int):
 # -------------------------
 def save_turn(session_id: int, packet: dict, response: str):
     conn = get_connection()
-    conn.execute(
+
+    # strip runtime-only keys before saving — these cause recursive bloat
+    entities_to_save = {
+        k: v for k, v in packet.get("entities", {}).items()
+        if k not in ("memory_context", "semantic_context")
+    }
+
+    cursor = conn.execute(
         """
         INSERT INTO conversations
             (session_id, timestamp, raw_text, intent, confidence,
@@ -115,13 +122,15 @@ def save_turn(session_id: int, packet: dict, response: str):
             packet.get("entities", {}).get("raw_text", ""),
             packet.get("intent", ""),
             packet.get("confidence", 0.0),
-            json.dumps(packet.get("entities", {})),
+            json.dumps(entities_to_save),
             response,
             int(packet.get("context_used", False))
         )
     )
     conn.commit()
+    row_id = cursor.lastrowid
     conn.close()
+    return row_id
 
 
 # -------------------------

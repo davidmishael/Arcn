@@ -512,19 +512,7 @@ def ask_question(entities: dict = {}):
     memory_context   = entities.get("memory_context", [])
     semantic_context = entities.get("semantic_context", [])
 
-    # Seed conversation history on fresh boot from SQLite
-    if not _conversation_history and memory_context:
-        for turn in memory_context:
-            if turn["intent"] == "ask_question" and turn["raw_text"]:
-                _conversation_history.append({
-                    "role"   : "user",
-                    "content": turn["raw_text"]
-                })
-                if turn["response"]:
-                    _conversation_history.append({
-                        "role"   : "assistant",
-                        "content": turn["response"]
-                    })
+    
 
     # Build semantic context string injected into system prompt
     semantic_note = ""
@@ -537,7 +525,6 @@ def ask_question(entities: dict = {}):
                 )
         if lines:
             semantic_note = "\n\nRelevant past conversations:\n" + "\n".join(lines)
-
     _conversation_history.append({
         "role"   : "user",
         "content": topic

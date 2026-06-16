@@ -16,6 +16,15 @@ from speaker import speak as _speak
 _last_fired = {}
 _lock = threading.Lock()
 
+# -------------------------
+# State reference — injected
+# from main.py via start().
+# Engine only speaks when
+# assistant is idle.
+# -------------------------
+_state_ref = None
+
+
 def _cooldown_ok(key: str, seconds: int) -> bool:
     """Returns True if enough time has passed since this alert last fired."""
     with _lock:
@@ -24,6 +33,29 @@ def _cooldown_ok(key: str, seconds: int) -> bool:
             _last_fired[key] = time.time()
             return True
         return False
+
+
+def _safe_speak(text: str):
+    """
+    Only speaks if the assistant is idle.
+    If assistant is listening, processing, or speaking —
+    wait until it returns to idle, then speak.
+    Timeout after 30s to prevent infinite blocking.
+    """
+    if _state_ref is None:
+        _speak(text)
+        return
+
+    deadline = time.time() + 30  # max wait 30s
+
+    while time.time() < deadline:
+        if _state_ref.get() == "idle":
+            _speak(text)
+            return
+        time.sleep(0.5)  # check every 0.5s
+
+    # timed out — assistant never returned to idle, skip this alert
+    print(f"[proactive] skipped (assistant busy): {text[:50]}")
 
 
 # -------------------------
@@ -50,7 +82,7 @@ def _check_cpu():
     for name in persistent:
         key = f"cpu_{name}"
         if _cooldown_ok(key, 300):  # 5 min cooldown per process
-            _speak(f"{name} has been pegging the CPU. You might want to check that.")
+            _safe_speak(f"{name} has been pegging the CPU. You might want to check that.")
 
     _cpu_previous_offenders = current_offenders
 
@@ -64,7 +96,7 @@ def _check_ram():
     available_gb = psutil.virtual_memory().available / (1024 ** 3)
     if available_gb < 1.0:
         if _cooldown_ok("ram", 600):  # 10 min cooldown
-            _speak(f"RAM's running low — only {available_gb:.1f} GB free. Might be worth closing something.")
+            _safe_speak(f"RAM's running low — only {available_gb:.1f} GB free. Might be worth closing something.")
 
 
 # -------------------------
@@ -95,9 +127,9 @@ def _check_battery():
         pct = int(match.group(1))
 
         if pct <= 10 and _cooldown_ok("battery_10", 900):
-            _speak(f"Battery at {pct}%. Plug in soon.")
+            _safe_speak(f"Battery at {pct}%. Plug in soon.")
         elif pct <= 20 and _cooldown_ok("battery_20", 900):
-            _speak(f"Battery at {pct}%. Worth plugging in.")
+            _safe_speak(f"Battery at {pct}%. Worth plugging in.")
 
     except Exception:
         pass  # pmset failure is silent — not worth alerting
@@ -120,16 +152,14 @@ def _check_water():
         return
 
     elapsed = time.time() - _last_water
-    if elapsed >= 2700 or _last_water == 0.0:  # 45 min = 2700s
+    if elapsed >= 2700:  # 45 min = 2700s
         _last_water = time.time()
-        # Don't speak on first boot (elapsed will be huge) — skip the first one
-        if elapsed < 86400:  # skip if it's been more than a day (i.e. first run)
-            _speak("Drink some water.")
+        _safe_speak("Drink some water.")
 
 
 # -------------------------
 # 5. MORNING BRIEFING
-# Fires once per day after 6am on first boot.
+# Fires once per day between 6am and 12pm on first boot.
 # Calls get_weather() internally for live data.
 # -------------------------
 _briefing_fired_date = None  # tracks which date briefing already fired
@@ -138,7 +168,7 @@ def _check_morning_briefing():
     global _briefing_fired_date
     now = datetime.datetime.now()
 
-    # Only after 6am
+    # Only between 6am and 12pm
     if not (6 <= now.hour < 12):
         return
 
@@ -159,22 +189,22 @@ def _check_morning_briefing():
         weather = None
 
     if weather:
-        _speak(f"Good morning. It's {time_str}. {weather}")
+        _safe_speak(f"Good morning. It's {time_str}. {weather}")
     else:
-        _speak(f"Good morning. It's {time_str}.")
+        _safe_speak(f"Good morning. It's {time_str}.")
 
 
 # -------------------------
 # MAIN LOOP
 # Single daemon thread, runs all checks on their own cadence.
-# CPU + RAM + battery checked every 60s.
-# Water and briefing checked every 60s too — they self-gate internally.
+# CPU + RAM + battery + water + briefing checked every 60s.
+# Each check self-gates via cooldowns or date tracking.
 # -------------------------
 def _engine_loop():
-    # Small boot delay — let the assistant finish saying "Arcn online" first
-    time.sleep(10)
+    # Boot delay — let assistant finish booting and speaking "Arcn online"
+    time.sleep(20)
 
-    # Water: set _last_water to now so first reminder fires 45min from boot, not immediately
+    # Water: set _last_water to now so first reminder fires 45min from boot
     global _last_water
     _last_water = time.time()
 
@@ -192,8 +222,15 @@ def _engine_loop():
         time.sleep(60)  # poll every 60 seconds
 
 
-def start():
-    """Call this from main.py after pywebview starts. Launches engine as daemon thread."""
+def start(state=None):
+    """
+    Call this from main.py after pywebview starts.
+    Pass the AssistantState object so the engine
+    can gate on it before speaking.
+    """
+    global _state_ref
+    _state_ref = state
+
     t = threading.Thread(target=_engine_loop, daemon=True)
     t.name = "proactive-engine"
     t.start()

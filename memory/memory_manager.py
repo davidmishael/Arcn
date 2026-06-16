@@ -46,29 +46,17 @@ class MemoryManager:
 
         # 2. Get the row ID of the turn we just saved
         # so we can use it as the vector store ID
-        recent = db.get_recent_turns(n=1)
-        if recent:
-            # get_recent_turns doesn't return id directly
-            # so we query for it separately
-            conn = db.get_connection()
-            row = conn.execute(
-                "SELECT id FROM conversations ORDER BY id DESC LIMIT 1"
-            ).fetchone()
-            conn.close()
+        # REPLACE WITH THIS
+        turn_id  = db.save_turn(self.session_id, packet, response)
+        raw_text = packet.get("entities", {}).get("raw_text", "")
+        intent   = packet.get("intent", "")
 
-            if row:
-                turn_id = row["id"]
-                raw_text = packet.get("entities", {}).get("raw_text", "")
-                intent   = packet.get("intent", "")
-
-                # 3. Add to ChromaDB vector store
-                # only stores intents defined in VECTOR_INTENTS
-                self.vector_store.add(
-                    turn_id  = turn_id,
-                    raw_text = raw_text,
-                    intent   = intent,
-                    response = response
-                )
+        self.vector_store.add(
+            turn_id  = turn_id,
+            raw_text = raw_text,
+            intent   = intent,
+            response = response
+        )
 
         # 4. Passively extract preferences from entities
         self._extract_preferences(packet)

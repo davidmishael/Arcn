@@ -143,10 +143,10 @@ def on_webview_started():
     # Assistant loop — daemon thread
     t = threading.Thread(target=assistant_loop, daemon=True)
     t.start()
+    proactive_engine.start(state)
+    
 
-    # Proactive engine — daemon thread
-    # starts inside engine.py with its own 10s boot delay
-    proactive_engine.start()
+    
 
 webview.start(on_webview_started)
 

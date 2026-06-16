@@ -1,3 +1,4 @@
+import threading
 import sounddevice as sd
 from kokoro import KPipeline
 
@@ -8,6 +9,15 @@ from kokoro import KPipeline
 VOICE       = "af_heart"  # options: af_heart, af_bella, af_sarah, am_adam, am_michael
 LANG_CODE   = "a"         # "a" = American English, "b" = British English
 SAMPLE_RATE = 24000
+
+
+# -------------------------
+# Global audio lock
+# Prevents the assistant loop and proactive engine
+# from opening the audio device simultaneously.
+# Any call to speak() blocks until the current one finishes.
+# -------------------------
+_audio_lock = threading.Lock()
 
 
 # -------------------------
@@ -32,20 +42,25 @@ def speak(text: str):
 
     import numpy as np
 
-    generator = _pipeline(text, voice=VOICE)
-    buffer = []
+    # Acquire lock before touching audio device.
+    # If proactive engine is speaking, assistant waits.
+    # If assistant is speaking, proactive engine waits.
+    with _audio_lock:
 
-    for gs, ps, audio in generator:
-        buffer.append(audio)
+        generator = _pipeline(text, voice=VOICE)
+        buffer = []
 
-        # Play in small batches of 3 chunks
-        # balances latency vs blip prevention
-        if len(buffer) >= 3:
+        for gs, ps, audio in generator:
+            buffer.append(audio)
+
+            # Play in small batches of 3 chunks
+            # balances latency vs blip prevention
+            if len(buffer) >= 3:
+                sd.play(np.concatenate(buffer), samplerate=SAMPLE_RATE)
+                sd.wait()
+                buffer = []
+
+        # Play any remaining chunks
+        if buffer:
             sd.play(np.concatenate(buffer), samplerate=SAMPLE_RATE)
             sd.wait()
-            buffer = []
-
-    # Play any remaining chunks
-    if buffer:
-        sd.play(np.concatenate(buffer), samplerate=SAMPLE_RATE)
-        sd.wait()

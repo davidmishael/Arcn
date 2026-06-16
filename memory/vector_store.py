@@ -117,9 +117,8 @@ class VectorStore:
             # distance is cosine distance (0 = identical, 2 = opposite)
             # convert to similarity score (1 = identical, -1 = opposite)
             similarity = round(1 - distance, 3)
-
             # Only return turns with meaningful similarity
-            if similarity < 0.3:
+            if similarity < 0.2:
                 continue
 
             turns.append({
