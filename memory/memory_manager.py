@@ -41,16 +41,19 @@ class MemoryManager:
     # -------------------------
     def save(self, packet: dict, response: str):
 
-        # 1. Save the full turn to SQLite
-        db.save_turn(self.session_id, packet, response)
-
-        # 2. Get the row ID of the turn we just saved
-        # so we can use it as the vector store ID
-        # REPLACE WITH THIS
-        turn_id  = db.save_turn(self.session_id, packet, response)
-        raw_text = packet.get("entities", {}).get("raw_text", "")
         intent   = packet.get("intent", "")
+        raw_text = packet.get("entities", {}).get("raw_text", "")
 
+        # Skip saving noise — unknown intent, too short, or non-English/Tamil
+        if intent == "unknown_intent":
+            return
+        if len(raw_text.strip()) < 10:
+            return
+
+        # 1. Save to SQLite — returns inserted row ID
+        turn_id = db.save_turn(self.session_id, packet, response)
+
+        # 2. Add to ChromaDB vector store
         self.vector_store.add(
             turn_id  = turn_id,
             raw_text = raw_text,
@@ -58,7 +61,7 @@ class MemoryManager:
             response = response
         )
 
-        # 4. Passively extract preferences from entities
+        # 3. Passively extract preferences from entities
         self._extract_preferences(packet)
 
     # -------------------------

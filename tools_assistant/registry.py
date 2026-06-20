@@ -430,7 +430,7 @@ def stop_cancel(entities: dict = {}):
 # -------------------------
 
 def get_weather(entities: dict = {}):
-    city = entities.get("city") or DEFAULT_CITY
+    city = entities.get("location") or entities.get("city") or DEFAULT_CITY
 
     if not OPENWEATHER_API_KEY:
         return "No weather API key found."

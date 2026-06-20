@@ -194,7 +194,6 @@ def wait_for_wake_word(model, config, device):
             # Result: CNN only runs when there's actual sound in the buffer.
             # -------------------------
             rms = np.sqrt(np.mean(buffer ** 2))
-            print(f"[gate] rms={rms:.4f}")
             if rms < ENERGY_THRESHOLD:
                 continue
 

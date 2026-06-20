@@ -15,6 +15,7 @@ sys.path.append(os.path.join(ROOT, "memory"))
 sys.path.append(os.path.join(ROOT, "proactive"))  # proactive engine on path
 
 import webview
+from pynput import keyboard
 
 from pipeline import NLPBrain
 from core import CommandCenter
@@ -23,8 +24,7 @@ from speaker import speak
 from listener import listen
 from wake_word import load_wake_word_model, wait_for_wake_word
 from ui.window_manager import create_window
-from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response
-from ui.state_server import start as start_state_server, set_state_source, set_last_response, set_icon_path
+from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response, set_icon_path
 import engine as proactive_engine  # proactive engine
 
 # -------------------------
@@ -44,6 +44,35 @@ class AssistantState:
         with self._lock: return self._state
 
 state = AssistantState()
+
+# -------------------------
+# Wake word toggle
+# Set False to disable wake word and use hotkey instead.
+# Set True to re-enable wake word detection.
+# -------------------------
+WAKE_WORD_ON = False
+
+# -------------------------
+# Hotkey trigger
+# threading.Event — hotkey listener sets it,
+# assistant loop waits on it.
+# Only used when WAKE_WORD_ON = False.
+# Hotkey: Cmd + Shift + Space
+# -------------------------
+_hotkey_event = threading.Event()
+
+def _on_hotkey():
+    """Called by pynput when hotkey fires. Unblocks the assistant loop."""
+    if state.get() == "idle":
+        _hotkey_event.set()
+
+def _start_hotkey_listener():
+    """Starts global hotkey listener as daemon thread."""
+    hotkey = keyboard.GlobalHotKeys({
+        "<cmd>+<shift>+<space>": _on_hotkey
+    })
+    hotkey.daemon = True
+    hotkey.start()
 
 # -------------------------
 # Icon path
@@ -77,8 +106,16 @@ def assistant_loop():
         while True:
             state.set("idle")
 
-            # ── wait for wake word ──
-            wait_for_wake_word(ww_model, ww_config, ww_device)
+            if WAKE_WORD_ON:
+                # ── wake word path ──
+                wait_for_wake_word(ww_model, ww_config, ww_device)
+            else:
+                # ── hotkey path ──
+                # Block here until Cmd+Shift+Space is pressed.
+                # _hotkey_event is set by _on_hotkey() on keypress.
+                # Clear it immediately after waking so next press works.
+                _hotkey_event.wait()
+                _hotkey_event.clear()
 
             # ── conversation loop — stays active until silence ──
             while True:
@@ -86,7 +123,7 @@ def assistant_loop():
                 text = listen()
 
                 if not text:
-                    # nothing heard — drop back to wake word
+                    # nothing heard — drop back to trigger
                     break
 
                 if any(word in text for word in SHUTDOWN_WORDS):
@@ -134,19 +171,18 @@ win, api = create_window(ICON_PATH)
 # Start assistant + proactive engine
 # in background threads after webview ready
 # -------------------------
-def post_start():
-    """Runs after pywebview is ready."""
-    time.sleep(2.0)  # wait for NSApplication to fully init
-    assistant_loop()
 
 def on_webview_started():
+    # Start global hotkey listener — always running regardless of WAKE_WORD_ON
+    # costs zero CPU, harmless when wake word is on
+    _start_hotkey_listener()
+
     # Assistant loop — daemon thread
     t = threading.Thread(target=assistant_loop, daemon=True)
     t.start()
-    proactive_engine.start(state)
-    
 
-    
+    # Proactive engine — daemon thread
+    proactive_engine.start(state)
 
 webview.start(on_webview_started)
 
