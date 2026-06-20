@@ -20,6 +20,15 @@ TONE_FREQ_START = 180        # Hz — low warm hum
 TONE_FREQ_END   = 260        # Hz — gentle rise, not a whir
 SAMPLE_RATE_OUT = 24000
 
+# -------------------------
+# Energy gate threshold
+# RMS below this value = silence
+# CNN inference is skipped entirely
+# Cuts CPU usage dramatically during quiet periods
+# Tune up if getting false positives, down if wake word is being missed
+# -------------------------
+ENERGY_THRESHOLD = 0.018
+
 
 # -------------------------
 # Same tiny CNN from training
@@ -73,6 +82,7 @@ def _play_confirmation_tone():
     tone = (tone * 0.35).astype(np.float32)
     sd.play(tone, samplerate=SAMPLE_RATE_OUT)
     sd.wait()
+
 
 # -------------------------
 # Audio chunk → mel → tensor
@@ -175,7 +185,18 @@ def wait_for_wake_word(model, config, device):
 
         while True:
             time.sleep(0.5)
-            
+
+            # -------------------------
+            # Energy gate — runs BEFORE CNN
+            # RMS of buffer = rough measure of audio energy.
+            # If below threshold, it's silence — skip mel + CNN entirely.
+            # This is cheap (one numpy op) vs mel+CNN which is expensive.
+            # Result: CNN only runs when there's actual sound in the buffer.
+            # -------------------------
+            rms = np.sqrt(np.mean(buffer ** 2))
+            print(f"[gate] rms={rms:.4f}")
+            if rms < ENERGY_THRESHOLD:
+                continue
 
             tensor = _preprocess(buffer.copy(), config)
 
