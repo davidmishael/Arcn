@@ -39,7 +39,6 @@ class CommandCenter:
         entities   = packet.get("entities", {})
         requires_clarification = packet.get("requires_clarification", False)
         confidence = packet.get("confidence", 0)
-        print(f"[debug] intent={intent} confidence={confidence}")
 
         # -------------------------
         # Priority intents skip
