@@ -15,7 +15,17 @@
       "begin countdown for 25 minutes",
       "i need a timer for 8 minutes",
       "set timer 20 minutes",
-      "countdown 5 minutes"
+      "countdown 5 minutes",
+      "set a timer for half an hour",
+      "give me a 45 minute countdown",
+      "start a 10 second timer",
+      "i need a 2 hour timer",
+      "set timer for 90 minutes",
+      "begin a 5 minute countdown",
+      "start a quick 30 second timer",
+      "can you do a 1 minute timer",
+      "set me a timer for 25 minutes",
+      "countdown from 15 minutes"
     ]
   },
 
@@ -35,7 +45,12 @@
       "pause the timer",
       "clear the timer",
       "remove the timer",
-      "i dont need the timer anymore"
+      "i dont need the timer anymore",
+      "cancel my timer",
+      "stop that countdown",
+      "turn the timer off",
+      "i dont want the timer",
+      "kill the timer"
     ]
   },
 
@@ -55,7 +70,17 @@
       "remind me in 30 minutes",
       "set an alert for 9pm",
       "i need a reminder for tomorrow",
-      "remind me to study later"
+      "remind me to study later",
+      "remind me to drink water in an hour",
+      "set a reminder to call the doctor",
+      "remind me about my dentist appointment",
+      "can you remind me to exercise tomorrow",
+      "remind me to submit the assignment at 5pm",
+      "set a reminder for friday at 3pm",
+      "remind me to charge my phone tonight",
+      "remind me to take out the trash tomorrow morning",
+      "set an alert for my meeting at 2pm",
+      "remind me to reply to that email"
     ]
   },
 
@@ -75,7 +100,17 @@
       "put on my study playlist",
       "start some tunes",
       "play music on spotify",
-      "turn on some music"
+      "turn on some music",
+      "play something upbeat",
+      "put on some jazz",
+      "start my workout playlist",
+      "play some hip hop",
+      "put on ambient music",
+      "play some classical music",
+      "start playing my favorites",
+      "put on some rock music",
+      "play something calm",
+      "turn on spotify"
     ]
   },
 
@@ -95,7 +130,12 @@
       "halt playback",
       "pause for a second",
       "stop music please",
-      "put music on pause"
+      "put music on pause",
+      "pause what is playing",
+      "stop the music for a second",
+      "can you stop the song",
+      "hold the playback",
+      "pause it"
     ]
   },
 
@@ -115,7 +155,12 @@
       "skip ahead",
       "next please",
       "i want a different song",
-      "skip track"
+      "skip track",
+      "go to the next song",
+      "skip this one",
+      "play something else",
+      "next music please",
+      "i dont want this song"
     ]
   },
 
@@ -135,7 +180,17 @@
       "find information on black holes",
       "look up the definition of entropy",
       "search for latest tech news",
-      "browse the web for tutorials"
+      "browse the web for tutorials",
+      "search for iphone 17 reviews",
+      "look up the best restaurants near me",
+      "google the score of the game",
+      "find articles about climate change",
+      "search for python tutorials",
+      "look up how to fix a bug in code",
+      "find me the latest news",
+      "search youtube for cooking videos",
+      "look up flight prices to london",
+      "google who won the election"
     ]
   },
 
@@ -155,7 +210,17 @@
       "open notepad",
       "start up chrome",
       "open settings",
-      "launch the app"
+      "launch the app",
+      "open safari",
+      "launch finder",
+      "open system preferences",
+      "start visual studio code",
+      "open the notes app",
+      "launch chatgpt",
+      "open google chrome",
+      "start up the terminal",
+      "open whatsapp",
+      "launch vs code please"
     ]
   },
 
@@ -175,7 +240,12 @@
       "quit the application",
       "close everything",
       "shut it down",
-      "exit the app"
+      "exit the app",
+      "close safari",
+      "quit chrome",
+      "shut down this app",
+      "close the current window",
+      "exit vs code"
     ]
   },
 
@@ -195,7 +265,22 @@
       "weather update please",
       "is it sunny today",
       "give me the forecast for tomorrow",
-      "weather check"
+      "weather check",
+      "what is the weather in nashville",
+      "how hot is it in london",
+      "weather in new york",
+      "what is the temperature in tokyo",
+      "is it raining in paris",
+      "whats the weather like in dubai",
+      "forecast for chennai tomorrow",
+      "how cold is it in canada",
+      "weather in los angeles today",
+      "what is the climate like in sydney",
+      "is it going to snow in new york",
+      "tell me the weather in berlin",
+      "how is the weather in singapore",
+      "weather forecast for mumbai",
+      "current temperature in chicago"
     ]
   },
 
@@ -225,7 +310,12 @@
       "write this down meeting at 5pm",
       "take note dentist appointment tomorrow",
       "save idea for new feature",
-      "note to self drink more water"
+      "note to self drink more water",
+      "write down that i need to fix the bug",
+      "save a note about the project deadline",
+      "jot down grocery list",
+      "note that the meeting is at 3pm",
+      "keep a record of this idea"
     ]
   },
 
@@ -251,7 +341,46 @@
       "what were we discussing earlier",
       "do you remember what we talked about",
       "what was our last conversation about",
-      "what did we last talk about"
+      "what did we last talk about",
+      "which is better iphone or android",
+      "which is better physical books online books or audio books",
+      "what is the best programming language to learn",
+      "how good is the iphone 17 camera",
+      "when is the iphone 18 coming out",
+      "what year did world war 2 end",
+      "who is the ceo of apple",
+      "what is the population of india",
+      "how fast is the speed of light",
+      "why is the sky blue",
+      "what is the difference between ram and rom",
+      "how does cryptocurrency work",
+      "what are the benefits of exercise",
+      "explain the theory of relativity",
+      "who wrote harry potter",
+      "what is the capital of france",
+      "how do vaccines work",
+      "what is artificial intelligence",
+      "tell me about the history of rome",
+      "why do we dream",
+      "how does the stock market work",
+      "what is the best way to learn guitar",
+      "who won the world cup in 2022",
+      "what is roblox",
+      "why is roblox so addictive",
+      "how do i get better at coding",
+      "what is the difference between a virus and bacteria",
+      "explain photosynthesis",
+      "what causes earthquakes",
+      "how does wifi work",
+      "tell me about climate change",
+      "what is the latest version of python",
+      "how does the immune system work",
+      "what are black holes made of",
+      "who is elon musk",
+      "what is tesla",
+      "how does gps work",
+      "what is the tallest mountain in the world",
+      "explain how neural networks learn"
     ]
   },
 
@@ -271,7 +400,12 @@
       "make it quieter",
       "crank up the sound",
       "set volume to max",
-      "reduce the sound"
+      "reduce the sound",
+      "turn the volume all the way up",
+      "make the sound louder",
+      "bring the volume down",
+      "silence the audio",
+      "max out the volume"
     ]
   },
 
@@ -291,7 +425,12 @@
       "max brightness please",
       "dim the display",
       "reduce screen brightness",
-      "adjust the brightness"
+      "adjust the brightness",
+      "make the screen less bright",
+      "turn the brightness all the way up",
+      "darken the screen",
+      "increase the display brightness",
+      "lower the screen brightness"
     ]
   },
 
@@ -311,7 +450,12 @@
       "reach out to my contact",
       "send a note to my friend",
       "message them and say yes",
-      "tell her ill call later"
+      "tell her ill call later",
+      "send a text saying i am running late",
+      "message my mom that ill be home soon",
+      "text john that the meeting is cancelled",
+      "send a message to sarah saying happy birthday",
+      "tell my dad i will call him back"
     ]
   },
 
@@ -331,7 +475,12 @@
       "no stop",
       "actually never mind",
       "cancel everything",
-      "forget what i just said"
+      "forget what i just said",
+      "drop it",
+      "dont do that",
+      "scratch that",
+      "never mind forget it",
+      "stop that"
     ]
   },
 
@@ -351,7 +500,17 @@
       "hey are you there",
       "good afternoon",
       "jarvis you there",
-      "hey buddy"
+      "hey buddy",
+      "hey arcn",
+      "hello arcn",
+      "good morning arcn",
+      "hi arcn",
+      "yo arcn",
+      "hey are you awake",
+      "arcn you there",
+      "good night arcn",
+      "whats up arcn",
+      "hey good morning"
     ]
   },
 
@@ -371,7 +530,12 @@
       "are you functioning well",
       "how are things",
       "you feeling okay",
-      "all good on your end"
+      "all good on your end",
+      "how are you today",
+      "you doing well",
+      "hows life",
+      "you alright",
+      "how is everything with you"
     ]
   },
 
@@ -391,15 +555,20 @@
       "how late is it",
       "what time do we have",
       "current time please",
-      "tell me the current time"
+      "tell me the current time",
+      "what is the time right now",
+      "check the time for me",
+      "what oclock is it",
+      "tell me what time it is",
+      "whats the time right now"
     ]
   },
 
   "tell_date": {
     "examples": [
       "what is todays date",
-      "what day is it",
-      "tell me the date",
+      "what day is it today",
+      "tell me todays date",
       "whats today",
       "what month are we in",
       "what year is it",
@@ -411,7 +580,12 @@
       "current date please",
       "whats the date today",
       "what is the current date",
-      "today is what day"
+      "today is what day",
+      "what is the date right now",
+      "tell me the current date",
+      "what is todays day",
+      "check the date for me",
+      "what day is today"
     ]
   },
 
@@ -431,7 +605,12 @@
       "lock computer",
       "secure my mac",
       "lock down the mac",
-      "lock up the computer"
+      "lock up the computer",
+      "lock the laptop",
+      "secure the computer",
+      "put the mac to sleep",
+      "lock this machine",
+      "enable screen lock"
     ]
   }
 }
