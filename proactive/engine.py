@@ -162,26 +162,22 @@ def _check_water():
 # Fires once per day between 6am and 12pm on first boot.
 # Calls get_weather() internally for live data.
 # -------------------------
-_briefing_fired_date = None  # tracks which date briefing already fired
-
+# NEW — persists across restarts
 def _check_morning_briefing():
-    global _briefing_fired_date
+    import db
     now = datetime.datetime.now()
 
-    # Only between 6am and 12pm
     if not (6 <= now.hour < 12):
         return
 
-    today = now.date()
-    if _briefing_fired_date == today:
-        return  # already fired today
+    today = str(now.date())
+    if db.get_briefing_date() == today:
+        return
 
-    _briefing_fired_date = today
+    db.set_briefing_date(today)
 
-    # Get time string
     time_str = now.strftime("%I:%M %p").lstrip("0")
 
-    # Get weather — import here to avoid circular import at module level
     try:
         from registry import get_weather
         weather = get_weather({})

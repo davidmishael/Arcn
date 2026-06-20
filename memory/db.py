@@ -261,7 +261,11 @@ def delete_state_value(key: str):
     conn.commit()
     conn.close()
 
+def get_briefing_date() -> str:
+    return get_state_value("last_briefing_date", "")
 
+def set_briefing_date(date_str: str):
+    set_state_value("last_briefing_date", date_str)
 
 if __name__ == "__main__":
     init_db()
