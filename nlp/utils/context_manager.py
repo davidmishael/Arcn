@@ -1,4 +1,5 @@
 from collections import deque
+from html import entities
 
 
 # -------------------------
@@ -15,7 +16,7 @@ class ContextManager:
         self.history = deque(maxlen=MAX_HISTORY)
 
         # Accumulated slots across conversation
-        self.slots = {}
+        self.slots = {} # now nested: {intent: {entity_key: value}}
 
         # Most recent intent + entities
         self.last_intent   = None
@@ -44,7 +45,9 @@ class ContextManager:
 
         # Merge new entities into running slots
         # New values overwrite old ones for the same key
-        self.slots.update(entities)
+        if intent not in self.slots:
+            self.slots[intent] = {}
+            self.slots[intent].update(entities)
 
     # -------------------------
     # Return current context
@@ -55,7 +58,7 @@ class ContextManager:
             "last_intent"   : self.last_intent,
             "last_entities" : self.last_entities,
             "last_message"  : self.last_message,
-            "slots"         : dict(self.slots),
+            "slots": dict(self.slots.get(self.last_intent, {})),
             "history"       : list(self.history)
         }
 
@@ -136,6 +139,15 @@ class ContextManager:
         self.last_intent   = None
         self.last_entities = {}
         self.last_message  = None
+
+    # -------------------------
+    # Clear just one intent's
+    # slot whiteboard
+    # -------------------------
+    def clear_slots_for_intent(self, intent: str):
+
+        if intent in self.slots:
+            self.slots[intent] = {}
 
     # -------------------------
     # Debug view

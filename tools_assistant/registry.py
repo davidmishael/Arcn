@@ -244,11 +244,11 @@ def _parse_duration(entities: dict) -> int:
 
     unit = parts[1]
 
-    if any(u in unit for u in ["s", "sec"]):
+    if unit.startswith("s"):
         return amount
-    elif any(u in unit for u in ["m", "min"]):
+    elif unit.startswith("m"):
         return amount * 60
-    elif any(u in unit for u in ["h", "hr", "hour"]):
+    elif unit.startswith("h"):
         return amount * 3600
 
     return 0
@@ -256,6 +256,8 @@ def _parse_duration(entities: dict) -> int:
 
 def set_timer(entities: dict = {}):
     global _timer_thread, _timer_cancel
+    print(f"DEBUG entities in set_timer: {entities}")
+
 
     seconds = _parse_duration(entities)
 

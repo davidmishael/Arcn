@@ -77,6 +77,8 @@ class NLPBrain:
         # -------------------------
         self.context.update_context(intent, entities, text)
 
+        print(f"DEBUG final entities: {entities}")
+
         # -------------------------
         # 5. Final structured output
         # -------------------------

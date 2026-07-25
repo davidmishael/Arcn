@@ -152,6 +152,7 @@ def assistant_loop():
 
                 # stay in loop only if tool explicitly expects follow-up
                 if not result.get("expects_followup", False):
+                    nlp.context.clear_slots_for_intent(packet.get("intent", ""))
                     break
 
                 # ── stay in conversation window after response ──

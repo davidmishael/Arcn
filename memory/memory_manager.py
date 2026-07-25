@@ -78,14 +78,11 @@ class MemoryManager:
         # only if they aren't already present
         prefs = db.get_all_preferences()
 
-        for pref_key, pref_value in prefs.items():
+        signals = PREFERENCE_SIGNALS.get(intent, {})
 
-            # Map preference keys back to entity keys
-            if pref_key == "default_city" and "location" not in entities:
-                entities["location"] = pref_value
-
-            elif pref_key == "default_unit" and "unit" not in entities:
-                entities["unit"] = pref_value
+        for entity_key, pref_key in signals.items():
+            if entity_key not in entities and pref_key in prefs:
+                entities[entity_key] = prefs[pref_key]
 
         # Only fetch context for ask_question —
         # avoids unnecessary DB reads on every turn
