@@ -42,25 +42,22 @@ def speak(text: str):
 
     import numpy as np
 
-    # Acquire lock before touching audio device.
-    # If proactive engine is speaking, assistant waits.
-    # If assistant is speaking, proactive engine waits.
     with _audio_lock:
+        try:
+            generator = _pipeline(text, voice=VOICE)
 
-        generator = _pipeline(text, voice=VOICE)
-        buffer = []
+            with sd.OutputStream(
+                samplerate=SAMPLE_RATE,
+                channels=1,
+                dtype="float32"
+            ) as stream:
 
-        for gs, ps, audio in generator:
-            buffer.append(audio)
+                for result in generator:
+                    audio = result.output.audio
+                    audio = audio.detach().cpu().numpy()
+                    audio = np.clip(audio, -1.0, 1.0).astype(np.float32)
 
-            # Play in small batches of 3 chunks
-            # balances latency vs blip prevention
-            if len(buffer) >= 3:
-                sd.play(np.concatenate(buffer), samplerate=SAMPLE_RATE)
-                sd.wait()
-                buffer = []
+                    stream.write(audio)
 
-        # Play any remaining chunks
-        if buffer:
-            sd.play(np.concatenate(buffer), samplerate=SAMPLE_RATE)
-            sd.wait()
+        except Exception as e:
+            print(f"[speaker] TTS failed: {e}")

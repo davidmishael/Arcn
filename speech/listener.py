@@ -10,7 +10,7 @@ WHISPER_MODEL    = "small"
 COMPUTE_TYPE     = "int8"
 ENERGY_THRESHOLD = 600  # raised from 400 — filters ambient noise
 TIMEOUT          = 4    # raised from 5 per session fix
-PHRASE_LIMIT     = 6
+PHRASE_LIMIT     = 10
 
 
 # -------------------------
@@ -22,7 +22,7 @@ print("  Whisper ready")
 
 recognizer = sr.Recognizer()
 recognizer.energy_threshold         = ENERGY_THRESHOLD
-recognizer.dynamic_energy_threshold = False
+recognizer.dynamic_energy_threshold = True
 
 
 def calibrate():
@@ -35,19 +35,26 @@ def calibrate():
 # -------------------------
 def listen() -> str | None:
 
-    with sr.Microphone() as source:
-        print("\nListening...")
+    try:
+        with sr.Microphone() as source:
+            print("\nListening...")
 
-        try:
-            audio = recognizer.listen(
-                source,
-                timeout           = TIMEOUT,
-                phrase_time_limit = PHRASE_LIMIT
-            )
-        except sr.WaitTimeoutError:
-            return None
-        except KeyboardInterrupt:
-            raise  # let main.py handle shutdown cleanly
+            try:
+                audio = recognizer.listen(
+                    source,
+                    timeout           = TIMEOUT,
+                    phrase_time_limit = PHRASE_LIMIT
+                )
+            except sr.WaitTimeoutError:
+                return None
+            except KeyboardInterrupt:
+                raise  # let main.py handle shutdown cleanly
+
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        print(f"[listener] mic error: {e}")
+        return None
 
     try:
         wav_path = "audio.wav"

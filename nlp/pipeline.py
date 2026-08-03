@@ -55,8 +55,10 @@ class NLPBrain:
 
             # Resolve bare number BEFORE merging with slots
             if "bare_number" in fresh and "duration" in context["slots"]:
-                last_unit = context["slots"]["duration"].split()[-1]
-                fresh["duration"] = f"{fresh.pop('bare_number')} {last_unit}"
+                duration_parts = context["slots"]["duration"].split()
+                if duration_parts:
+                    last_unit = duration_parts[-1]
+                    fresh["duration"] = f"{fresh.pop('bare_number')} {last_unit}"
 
             # Now merge — fresh entities take priority over old slots
             merged = dict(context["slots"])

@@ -45,6 +45,7 @@ INTENT_MAP = {
 
     # notes
     ("take_note", None)          : "take_note",
+    ("export_note_mac", None)    : "export_note_mac",
 
     # personality
     ("greet", None)              : "greet",
@@ -64,6 +65,9 @@ INTENT_MAP = {
     ("ask_question", None)       : "ask_question",
     ("create_reminder", None)    : "create_reminder",
     ("lock_mac", None) : "lock_mac",
+    ("vent", None)                : "vent",
+    ("brainstorm", None)          : "brainstorm",
+    ("explain_code", None)        : "explain_code",
 }
 
 
@@ -120,12 +124,22 @@ class Router:
             result   = tool["function"](entities)
             response = result if isinstance(result, str) and result else tool.get("confirmation", "Done.")
 
+            # Check for a dynamic follow-up override set by the tool itself —
+            # falls back to the tool's static registry value if not set
+            from state import StateManager
+            override_state = StateManager()
+            if override_state.get_needs_followup():
+                expects_followup = True
+                override_state.clear_needs_followup()
+            else:
+                expects_followup = tool.get("expects_followup", False)
+
             return {
                 "status"          : "executed",
                 "intent"          : intent,
                 "response"        : response,
                 "action_taken"    : True,
-                "expects_followup": tool.get("expects_followup", False),
+                "expects_followup": expects_followup,
             }
 
         except Exception as e:
@@ -136,7 +150,6 @@ class Router:
                 "action_taken"    : False,
                 "expects_followup": False,
             }
-
     # -------------------------
     # No matching tool found
     # -------------------------
@@ -149,3 +162,23 @@ class Router:
             action_taken = False
         )
 
+    # -------------------------
+    # Standard response packet —
+    # shared shape used by both
+    # route() and _no_tool()
+    # -------------------------
+    def _response(
+        self,
+        status      : str,
+        intent      : str,
+        response    : str,
+        action_taken: bool
+    ) -> dict:
+
+        return {
+            "status"          : status,
+            "intent"          : intent,
+            "response"        : response,
+            "action_taken"    : action_taken,
+            "expects_followup": False,
+        }

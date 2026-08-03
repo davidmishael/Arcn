@@ -24,7 +24,7 @@ from speaker import speak
 from listener import listen
 from wake_word import load_wake_word_model, wait_for_wake_word
 from ui.window_manager import create_window
-from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response, set_icon_path
+from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response, set_icon_path, set_boot_time, set_last_raw_text
 import engine as proactive_engine  # proactive engine
 
 # -------------------------
@@ -94,12 +94,17 @@ SHUTDOWN_WORDS = ["goodbye", "shut down", "exit arcn", "stop arcn", "quit"]
 set_state_source(state)
 start_state_server()
 set_icon_path(ICON_PATH)
+set_boot_time(time.time())
 
+# -------------------------
+# Assistant loop
+# -------------------------
 # -------------------------
 # Assistant loop
 # -------------------------
 def assistant_loop():
     time.sleep(1.5)
+
     speak("Arcn online.")
 
     try:
@@ -119,50 +124,68 @@ def assistant_loop():
 
             # ── conversation loop — stays active until silence ──
             while True:
-                state.set("listening")
-                text = listen()
+                try:
+                    state.set("listening")
+                    text = listen()
 
-                if not text:
-                    # nothing heard — drop back to trigger
-                    break
+                    if not text:
+                        # nothing heard — drop back to trigger
+                        from state import StateManager
+                        StateManager().clear_pending_note_stage()
+                        StateManager().clear_pending_note_title()
+                        break
 
-                if any(word in text for word in SHUTDOWN_WORDS):
-                    speak("Shutting down.")
-                    cc.shutdown()
-                    import AppKit
-                    AppKit.NSApplication.sharedApplication().terminate_(None)
-                    return
+                    if any(word in text for word in SHUTDOWN_WORDS):
+                        speak("Shutting down.")
+                        cc.shutdown()
+                        try:
+                            import AppKit
+                            AppKit.NSApplication.sharedApplication().terminate_(None)
+                        except Exception as e:
+                            print(f"[assistant_loop] shutdown termination failed: {e}")
+                        return
 
-                state.set("processing")
-                packet = nlp.predict(text)
-                packet["source"] = "nlp"
+                    state.set("processing")
+                    packet = nlp.predict(text)
+                    packet["source"] = "nlp"
 
-                if "entities" not in packet:
-                    packet["entities"] = {}
-                packet["entities"]["raw_text"] = text
+                    if "entities" not in packet:
+                        packet["entities"] = {}
+                    packet["entities"]["raw_text"] = text
 
-                set_last_intent(packet.get("intent", ""))
-                result = cc.handle(packet)
+                    set_last_intent(packet.get("intent", ""))
+                    set_last_raw_text(text)
+                    result = cc.handle(packet)
 
-                response = result.get("response", "")
-                if response:
-                    state.set("speaking")
-                    set_last_response(response)
-                    speak(response)
+                    set_last_intent(packet.get("intent", ""))
+                    result = cc.handle(packet)
 
-                # stay in loop only if tool explicitly expects follow-up
-                if not result.get("expects_followup", False):
-                    nlp.context.clear_slots_for_intent(packet.get("intent", ""))
-                    break
+                    response = result.get("response", "")
+                    if response:
+                        state.set("speaking")
+                        set_last_response(response)
+                        speak(response)
 
-                # ── stay in conversation window after response ──
-                # inner while continues — listens again immediately
-                # listen() timeout (4s) is the natural exit if silence
+                    # stay in loop only if tool explicitly expects follow-up
+                    if not result.get("expects_followup", False):
+                        nlp.context.clear_slots_for_intent(packet.get("intent", ""))
+                        break
+
+                    # ── stay in conversation window after response ──
+                    # inner while continues — listens again immediately
+                    # listen() timeout (4s) is the natural exit if silence
+
+                except KeyboardInterrupt:
+                    raise  # let outer handler manage shutdown
+
+                except Exception as e:
+                    print(f"[assistant_loop] turn failed: {e}")
+                    state.set("idle")
+                    break  # drop back to waiting for next trigger, don't kill the thread
 
     except KeyboardInterrupt:
         print("\nInterrupted.")
         cc.shutdown()
-
 # -------------------------
 # Create pywebview window
 # -------------------------
@@ -172,6 +195,8 @@ win, api = create_window(ICON_PATH)
 # Start assistant + proactive engine
 # in background threads after webview ready
 # -------------------------
+
+
 
 def on_webview_started():
     # Start global hotkey listener — always running regardless of WAKE_WORD_ON
@@ -190,3 +215,4 @@ webview.start(on_webview_started)
 # -------------------------
 # pywebview owns main thread
 # -------------------------
+
