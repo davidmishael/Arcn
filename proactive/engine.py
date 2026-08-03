@@ -107,6 +107,7 @@ def _check_ram():
 # Skips if charging.
 # -------------------------
 def _check_battery():
+    from state_server import set_battery
     try:
         result = subprocess.run(
             ["pmset", "-g", "batt"],
@@ -114,17 +115,18 @@ def _check_battery():
         )
         output = result.stdout
 
-        # Skip if charging
-        if "AC Power" in output or "charging" in output.lower():
-            return
-
-        # Extract percentage — pmset outputs something like "72%; discharging"
         import re
         match = re.search(r"(\d+)%", output)
         if not match:
+            set_battery(None)
             return
 
         pct = int(match.group(1))
+        set_battery(pct)  # always push, regardless of charging state
+
+        # Skip alerts if charging
+        if "AC Power" in output or "charging" in output.lower():
+            return
 
         if pct <= 10 and _cooldown_ok("battery_10", 900):
             _safe_speak(f"Battery at {pct}%. Plug in soon.")
@@ -132,7 +134,7 @@ def _check_battery():
             _safe_speak(f"Battery at {pct}%. Worth plugging in.")
 
     except Exception:
-        pass  # pmset failure is silent — not worth alerting
+        set_battery(None)  # pmset failure — UI shows placeholder instead of a stale number
 
 
 # -------------------------
