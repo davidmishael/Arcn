@@ -47,7 +47,7 @@ class ContextManager:
         # New values overwrite old ones for the same key
         if intent not in self.slots:
             self.slots[intent] = {}
-            self.slots[intent].update(entities)
+        self.slots[intent].update(entities)
 
     # -------------------------
     # Return current context
@@ -85,16 +85,18 @@ class ContextManager:
         text_lower = text.lower()
         resolved   = {}
 
-        # "it", "that", "this" → inherit last intent + entities
         vague_refs = ["it", "that", "this", "the same"]
+        words = text_lower.split()
 
-        if any(ref in text_lower.split() for ref in vague_refs):
+        # Only treat as a reference if the message is short — genuine
+        # pointer-word follow-ups are brief ("do that again", "make it 10pm"),
+        # not full sentences that happen to contain a common word like "this".
+        if len(words) <= 5 and any(ref in words for ref in vague_refs):
             if self.last_intent:
                 resolved["intent"]   = self.last_intent
                 resolved["entities"] = self.last_entities.copy()
 
         return resolved
-
     # -------------------------
     # Detect follow-up
     # -------------------------

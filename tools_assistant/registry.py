@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import requests
 import random
 from speaker import speak as _speak
+import subprocess
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
@@ -330,24 +331,98 @@ def tell_date(entities: dict = {}):
 # -------------------------
 
 def take_note(entities: dict = {}):
-    topic = entities.get("topic", "")
-    if not topic:
-        return "What would you like me to note?"
+    from state import StateManager
+    import db  # SQLite notes live here now
+    state = StateManager()
 
-    # Escape single quotes so osascript doesn't break
-    safe_topic = topic.replace("'", "\\'")
+    stage = state.get_pending_note_stage()
+    raw   = entities.get("raw_text", "").strip()
 
-    script = f"""
+    # ── Stage 0: fresh "take a note" — kick off the flow ──
+    if not stage:
+        state.set_pending_note_stage("awaiting_title")
+        return "What do you want to title it?"
+
+    # ── Stage 1: this reply is the title ──
+    if stage == "awaiting_title":
+        if not raw:
+            return "What do you want to title it?"
+        state.set_pending_note_title(raw)
+        state.set_pending_note_stage("awaiting_content")
+        return "What should the note say?"
+
+    # ── Stage 2: this reply is the content — save to SQLite ──
+    if stage == "awaiting_content":
+        title   = state.get_pending_note_title()
+        content = raw
+
+        if not content:
+            return "What should the note say?"
+
+        note_id = db.create_note(title, content)
+        state.set_last_note_id(note_id)
+
+        state.clear_pending_note_stage()
+        state.clear_pending_note_title()
+
+        return random.choice([
+            f"Noted — {title}. Say 'save that on my Mac too' if you want a copy in Notes.",
+            f"Got it. Saved. Let me know if you want it in Apple Notes too.",
+            f"Saved — {title}.",
+        ])
+
+    # ── Fallback — shouldn't be reachable, but don't get stuck ──
+    state.clear_pending_note_stage()
+    state.clear_pending_note_title()
+    return "Something went wrong with that note. Let's try again."
+
+
+def export_note_mac(entities: dict = {}):
+    from state import StateManager
+    import db
+    state = StateManager()
+
+    note_id = state.get_last_note_id()
+    if not note_id:
+        return "I don't have a recent note to export. Take a note first."
+
+    note = db.get_note(note_id)
+    if not note:
+        return "Couldn't find that note anymore."
+
+    if note["exported_to_mac"]:
+        return "That one's already in Apple Notes."
+
+    safe_title   = note["title"].replace("\\", "\\\\").replace('"', '\\"')
+    safe_content = note["content"].replace("\\", "\\\\").replace('"', '\\"')
+
+    script = f'''
     tell application "Notes"
-        make new note at folder "Notes" with properties {{body:"{safe_topic}"}}
+        make new note at folder "Notes" with properties {{name:"{safe_title}", body:"{safe_title}
+{safe_content}"}}
     end tell
-    """
+    '''
 
-    os.system(f"osascript -e '{script}' > /dev/null 2>&1")
+    try:
+        subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"[export_note_mac] osascript failed: {e.stderr}")
+        return "Couldn't save that to Apple Notes."
+    except subprocess.TimeoutExpired:
+        print("[export_note_mac] osascript timed out")
+        return "Couldn't save that to Apple Notes — timed out."
+
+    db.mark_note_exported(note_id)
     return random.choice([
-        f"Noted — {topic}.",
-        f"Got it. Saved to Notes.",
-        f"Saved — {topic}.",
+        "Saved to Apple Notes too.",
+        "Done — it's in Notes now.",
+        "Copied over to Apple Notes.",
     ])
 
 
@@ -547,7 +622,9 @@ def ask_question(entities: dict = {}):
 
     response = ollama.chat(
         model    = "mistral",
-        messages = messages
+        messages = messages,
+        keep_alive = "1m"
+        
     )
 
     answer = response["message"]["content"]
@@ -562,6 +639,64 @@ def ask_question(entities: dict = {}):
 
     return answer
 
+# -------------------------
+# Shared factory for simple
+# Mistral-backed tools — vent,
+# brainstorm, explain_code.
+# Each gets its own isolated
+# conversation history so they
+# don't bleed into each other.
+# ask_question stays separate —
+# it has memory-injection logic
+# this factory doesn't handle.
+# -------------------------
+def _make_mistral_tool(system_prompt: str):
+
+    history = []
+
+    def tool(entities: dict = {}):
+        import ollama
+        nonlocal history
+
+        raw_text = entities.get("raw_text", "")
+        if not raw_text:
+            return "What's on your mind?"
+
+        history.append({"role": "user", "content": raw_text})
+
+        messages = [{"role": "system", "content": system_prompt}] + history
+
+        response = ollama.chat(model="mistral", messages=messages, keep_alive="1m")
+        answer = response["message"]["content"]
+
+        history.append({"role": "assistant", "content": answer})
+
+        if len(history) > 20:
+            history[:] = history[-20:]
+
+        return answer
+
+    return tool
+
+
+vent = _make_mistral_tool(
+    "You are Arcn, and right now the user just needs to vent. "
+    "Do not give advice, do not problem-solve, do not lecture. "
+    "Just listen and respond with genuine, brief encouragement or validation — "
+    "1-2 sentences, plain conversational language, no bullet points."
+)
+
+brainstorm = _make_mistral_tool(
+    "You are Arcn, helping the user brainstorm ideas. "
+    "Give 3-5 concrete, varied suggestions, plain conversational language, no bullet points. "
+    "Ask a clarifying question if the request is too vague to give good ideas."
+)
+
+explain_code = _make_mistral_tool(
+    "You are Arcn, explaining code to someone learning Python and software architecture "
+    "by building this very assistant. Be clear and instructive, step-by-step where useful, "
+    "plain conversational language. Assume intermediate familiarity, don't over-explain basics."
+)
 
 from time_parser import parse_reminder_time
 
@@ -585,9 +720,11 @@ def create_reminder(entities: dict = {}):
         ).strip(" .")
         state.set_pending_reminder(clean_topic)
         state.set_pending_date(entities.get("relative_time", ""))
+        state.set_needs_followup(True)
         return "What time should I set that for?"
 
     state.clear_pending_reminder()
+    state.clear_needs_followup()
 
     date_str = reminder_dt.strftime("%B %d, %Y %I:%M %p")
 
@@ -650,10 +787,11 @@ TOOLS = {
 
     # NOTES
     "take_note"         : {"function": take_note,          "confirmation": "Note saved.",                "type": "note",        "expects_followup": True},
+    "export_note_mac"   : {"function": export_note_mac,   "confirmation": "",                           "type": "note",        "expects_followup": False},
 
     # PERSONALITY
     "greet"             : {"function": greet,              "confirmation": "",                           "type": "personality", "expects_followup": False},
-    "how_are_you"       : {"function": how_are_you,        "confirmation": "",                           "type": "personality", "expects_followup": True},
+    "how_are_you"       : {"function": how_are_you,        "confirmation": "",                           "type": "personality", "expects_followup": False},
     "stop_cancel"       : {"function": stop_cancel,        "confirmation": "Cancelled.",                 "type": "control",     "expects_followup": False},
 
     # MODES
@@ -668,4 +806,8 @@ TOOLS = {
     "send_message"      : {"function": send_message,       "confirmation": "",                           "type": "message",     "expects_followup": False},
     "ask_question"      : {"function": ask_question,       "confirmation": "",                           "type": "knowledge",   "expects_followup": True},
     "create_reminder"   : {"function": create_reminder,    "confirmation": "",                           "type": "reminder",    "expects_followup": False},
+    "vent"               : {"function": vent,               "confirmation": "",                           "type": "knowledge",   "expects_followup": True},
+    "brainstorm"         : {"function": brainstorm,         "confirmation": "",                           "type": "knowledge",   "expects_followup": True},
+    "explain_code"       : {"function": explain_code,       "confirmation": "",                           "type": "knowledge",   "expects_followup": True},
+
 }

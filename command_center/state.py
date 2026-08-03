@@ -74,3 +74,52 @@ class StateManager:
 
     def clear_pending_date(self):
         db.delete_state_value("pending_reminder_date")
+
+    # -------------------------
+    # Dynamic follow-up override
+    # Lets a tool signal "keep the
+    # conversation open" even when
+    # its registry entry says False
+    # -------------------------
+    def set_needs_followup(self, value: bool):
+        db.set_state_value("needs_followup_override", "true" if value else "false")
+
+    def get_needs_followup(self) -> bool:
+        return db.get_state_value("needs_followup_override", "") == "true"
+
+    def clear_needs_followup(self):
+        db.delete_state_value("needs_followup_override")
+
+    # -------------------------
+    # Pending note flow
+    # -------------------------
+    def set_pending_note_stage(self, stage: str):
+        db.set_state_value("pending_note_stage", stage)
+
+    def get_pending_note_stage(self) -> str:
+        return db.get_state_value("pending_note_stage", "")
+
+    def clear_pending_note_stage(self):
+        db.delete_state_value("pending_note_stage")
+
+    def set_pending_note_title(self, title: str):
+        db.set_state_value("pending_note_title", title)
+
+    def get_pending_note_title(self) -> str:
+        return db.get_state_value("pending_note_title", "")
+
+    def clear_pending_note_title(self):
+        db.delete_state_value("pending_note_title")
+
+    # -------------------------
+    # Last created note — lets
+    # "save that on my mac too"
+    # work even outside the
+    # original conversation window
+    # -------------------------
+    def set_last_note_id(self, note_id: int):
+        db.set_state_value("last_note_id", str(note_id))
+
+    def get_last_note_id(self):
+        val = db.get_state_value("last_note_id", "")
+        return int(val) if val else None

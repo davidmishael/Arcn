@@ -38,7 +38,11 @@ INTENT_SLOTS = {
     "how_are_you"      : [],
     "tell_time"        : [],
     "tell_date"        : [],
-    "unknown_intent"   : []
+    "unknown_intent"   : [],
+    "export_note_mac"  : [],
+    "vent"             : [],
+    "brainstorm"       : [],
+    "explain_code"     : []
 }
 
 
@@ -222,6 +226,14 @@ def _extract_topic(text: str, intent: str) -> dict:
     "remind me to",
     "remind me about",
     "remind me",
+    "set a reminder to",
+    "set a reminder about",
+    "set a reminder for",
+    "create a reminder to",
+    "create a reminder about",
+    "create a reminder for",
+    "add a reminder for",
+    "add a reminder to",
 
     # Notes
     "make a note to",
