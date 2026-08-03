@@ -612,5 +612,99 @@
       "lock this machine",
       "enable screen lock"
     ]
+  },
+
+  "export_note_mac": {
+    "examples": [
+      "save that on my mac too",
+      "save that to apple notes",
+      "put that in apple notes too",
+      "save the note on my mac also",
+      "add that to notes too",
+      "save that note to my mac",
+      "put it in apple notes",
+      "save that to notes as well",
+      "keep a copy in apple notes",
+      "export that to notes",
+      "save that note on the mac",
+      "add it to apple notes too",
+      "put that in notes as well",
+      "save it to my mac notes",
+      "copy that to apple notes"
+    ]
+  },
+  "vent": {
+    "examples": [
+      "i just need to vent for a second",
+      "can i vent to you",
+      "i had the worst day",
+      "im so frustrated right now",
+      "i just need to get this off my chest",
+      "today was really rough",
+      "i need to complain about something",
+      "im so annoyed right now",
+      "can i just rant for a minute",
+      "i had such a stressful day",
+      "im really overwhelmed right now",
+      "i just need to talk about something that happened",
+      "everything is going wrong today",
+      "im so tired of dealing with this",
+      "i need to let off some steam",
+      "this day has been a disaster",
+      "im really stressed out",
+      "i just need someone to listen",
+      "can i rant to you for a second",
+      "im having a really hard time today"
+    ]
+  },
+
+  "brainstorm": {
+    "examples": [
+      "help me brainstorm some ideas",
+      "can you help me think of gift ideas",
+      "i need ideas for a birthday present",
+      "give me some ideas for a project name",
+      "help me think of ways to solve this",
+      "can we brainstorm together",
+      "i need some creative ideas",
+      "what are some ideas for my workout routine",
+      "help me come up with ideas for dinner",
+      "give me a few options to consider",
+      "i need ideas for what to write about",
+      "can you suggest some ideas",
+      "help me think outside the box here",
+      "what are some approaches i could take",
+      "give me some ideas for a weekend trip",
+      "i need to brainstorm names for something",
+      "help me generate some ideas",
+      "what ideas do you have for this",
+      "can you help me think of a few options",
+      "i need some inspiration for ideas"
+    ]
+  },
+
+  "explain_code": {
+    "examples": [
+      "can you explain this code to me",
+      "what does this function do",
+      "explain how this works",
+      "walk me through this code",
+      "can you break this down for me",
+      "explain this piece of code",
+      "what is this code doing",
+      "help me understand this function",
+      "can you explain this logic",
+      "walk me through what this does",
+      "explain this class to me",
+      "what does this line of code do",
+      "can you break down this function",
+      "help me understand what this does",
+      "explain this python code",
+      "what is going on in this code",
+      "can you walk me through this logic",
+      "explain how this function works",
+      "help me understand this piece of code",
+      "break this code down for me"
+    ]
   }
 }

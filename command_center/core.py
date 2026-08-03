@@ -41,6 +41,15 @@ class CommandCenter:
         confidence = packet.get("confidence", 0)
 
         # -------------------------
+        # If a note flow is pending, force intent to take_note
+        # so free-form replies (title/content) aren't
+        # misrouted by the classifier
+        # -------------------------
+        if self.state.get_pending_note_stage():
+            intent = "take_note"
+            requires_clarification = False
+
+        # -------------------------
         # Priority intents skip
         # memory entirely — fast path
         # -------------------------

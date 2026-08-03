@@ -65,6 +65,18 @@ def init_db():
             value      TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
+                       
+        CREATE TABLE IF NOT EXISTS notes (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            title          TEXT NOT NULL,
+            content        TEXT NOT NULL,
+            created_at     TEXT NOT NULL,
+            updated_at     TEXT NOT NULL,
+            exported_to_mac INTEGER DEFAULT 0
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_notes_created
+        ON notes(created_at DESC);
 
     """)
 
@@ -132,6 +144,73 @@ def save_turn(session_id: int, packet: dict, response: str):
     conn.close()
     return row_id
 
+# -------------------------
+# Notes — SQLite is the
+# source of truth. Apple Notes
+# export is opt-in, one-way.
+# -------------------------
+def create_note(title: str, content: str) -> int:
+    conn = get_connection()
+    now = datetime.now().isoformat()
+    cursor = conn.execute(
+        """
+        INSERT INTO notes (title, content, created_at, updated_at, exported_to_mac)
+        VALUES (?, ?, ?, ?, 0)
+        """,
+        (title, content, now, now)
+    )
+    note_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return note_id
+
+
+def get_note(note_id: int):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT * FROM notes WHERE id = ?", (note_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_recent_notes(n: int = 10) -> list:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM notes ORDER BY id DESC LIMIT ?", (n,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def search_notes_by_title(query: str) -> list:
+    """Plain substring match — semantic search is a future item, not this pass."""
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM notes WHERE title LIKE ? ORDER BY id DESC",
+        (f"%{query}%",)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def mark_note_exported(note_id: int):
+    conn = get_connection()
+    conn.execute(
+        "UPDATE notes SET exported_to_mac = 1, updated_at = ? WHERE id = ?",
+        (datetime.now().isoformat(), note_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_note(note_id: int) -> bool:
+    conn = get_connection()
+    cursor = conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+    conn.commit()
+    deleted = cursor.rowcount > 0
+    conn.close()
+    return deleted
 
 # -------------------------
 # Preference tracking
@@ -223,6 +302,16 @@ def get_recent_turns(n: int = 10) -> list:
         })
 
     return list(reversed(turns))  # oldest first
+
+# -------------------------
+# Count total conversation turns —
+# powers the UI's "memory turns" stat
+# -------------------------
+def get_conversation_count() -> int:
+    conn = get_connection()
+    row = conn.execute("SELECT COUNT(*) as count FROM conversations").fetchone()
+    conn.close()
+    return row["count"] if row else 0
 
 # -------------------------
 # State management
