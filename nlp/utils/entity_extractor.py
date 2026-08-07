@@ -28,7 +28,10 @@ INTENT_SLOTS = {
     "open_app"         : ["app"],
     "close_app"        : ["app"],
     "get_weather"      : ["location", "date", "relative_time", "unit"],
-    "take_note"        : ["topic"],
+    "take_note"        : ["topic", "title"],
+    "read_note"        : ["note_query"],
+    "edit_note"         : ["note_query"],
+    "delete_note"       : ["note_query"],
     "ask_question"     : ["topic"],
     "system_volume"    : ["direction", "amount"],
     "system_brightness": ["direction", "amount"],
@@ -210,10 +213,68 @@ def _extract_topic(text: str, intent: str) -> dict:
 
     entities = {}
 
-    topic_intents = ["take_note", "ask_question", "web_search", "send_message", "create_reminder"]
+    note_lookup_intents = ["read_note", "edit_note", "delete_note"]
 
-    if intent not in topic_intents:
+    if intent in note_lookup_intents:
+        cleaned = text.lower()
+
+        # Strip action verbs and filler — leaves just the identifying words. DONT MODIFY the order of these phrases — some are substrings of others, and we want the longest matches first.
+        # Action verbs / requests — the many ways someone asks to
+        # read, edit, or delete a note. Stripped first.
+        action_phrases = [
+            "what does", "what's", "what is",
+            "read me", "read back", "read", "tell me what",
+            "show me", "pull up", "check", "look at", "look up",
+            "bring up", "open",
+            "delete", "remove", "get rid of", "erase", "trash", "toss",
+            "edit", "change", "update", "modify", "rewrite", "fix",
+            "i want to edit", "i want to change", "i need to update",
+            "i need to edit", "i want to delete", "i need to delete",
+            "can you delete", "can you edit", "can you read",
+            "could you delete", "could you edit", "could you read",
+        ]  # read, edit, change, delete
+
+        # Possessive / article filler — "my", "the", "that", "this"
+        # get stripped separately so they don't need to be paired
+        # with every single action phrase above.
+        filler_words = ["my", "the", "that", "this", "a", "an", "some", "any", "please", "kindly"]
+
+        # Note-referring words — stripped last, after the query
+        # itself has been isolated as much as possible.
+        note_words = [
+            "note titled", "note called", "titled", "called",
+            "note about", "about",
+            "note say", "notes say", "does say", "say", "says",
+            "notes", "note"
+        ]
+
+        cleaned = text.lower()
+
+        for phrase in action_phrases:
+            cleaned = cleaned.replace(phrase, " ")
+
+        # Strip filler words as whole words only — not substrings,
+        # since "my" as a substring could eat into a real word.
+        for word in filler_words:
+            cleaned = re.sub(rf'\b{word}\b', ' ', cleaned)
+
+        for phrase in note_words:
+            cleaned = cleaned.replace(phrase, " ")
+
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip(" ?.!,")
+
+        if cleaned:
+            entities["note_query"] = cleaned
         return entities
+    
+    # For take_note, an explicit "called/named/titled X" pattern means
+    # the user gave the title inline — capture it as its own entity and
+    # bail out early, so it never gets treated as note content below.
+    if intent == "take_note":
+        title_match = re.search(r'\b(?:called|named|titled)\s+(.+)', text, re.IGNORECASE)
+        if title_match:
+            entities["title"] = title_match.group(1).strip(" .")
+            return entities
 
     strip_phrases = [
     # Reminders

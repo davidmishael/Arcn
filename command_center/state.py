@@ -123,3 +123,65 @@ class StateManager:
     def get_last_note_id(self):
         val = db.get_state_value("last_note_id", "")
         return int(val) if val else None
+    
+    # -------------------------
+    # Pending note action —
+    # shared by read_note / edit_note / delete_note.
+    # Separate from the take_note title/content flow
+    # above — different shape (matched note, not a
+    # title being typed out), kept isolated to avoid
+    # the two flows cross-contaminating each other.
+    # -------------------------
+    def set_pending_note_action(self, action: str):
+        db.set_state_value("pending_note_action", action)
+
+    def get_pending_note_action(self) -> str:
+        return db.get_state_value("pending_note_action", "")
+
+    def clear_pending_note_action(self):
+        db.delete_state_value("pending_note_action")
+
+    # -------------------------
+    # The specific note id the
+    # pending action will apply to,
+    # once disambiguation has narrowed
+    # a search down to exactly one match.
+    # -------------------------
+    def set_pending_note_id(self, note_id: int):
+        db.set_state_value("pending_note_id", str(note_id))
+
+    def get_pending_note_id(self):
+        val = db.get_state_value("pending_note_id", "")
+        return int(val) if val else None
+
+    def clear_pending_note_id(self):
+        db.delete_state_value("pending_note_id")
+
+
+    def set_pending_note_content(self, content: str):
+        db.set_state_value("pending_note_content", content)
+
+    def get_pending_note_content(self) -> str:
+        return db.get_state_value("pending_note_content", "")
+
+    def clear_pending_note_content(self):
+        db.delete_state_value("pending_note_content")
+
+    def set_pending_show_note_id(self, note_id: int):
+        db.set_state_value("pending_show_note_id", str(note_id))
+
+    def get_pending_show_note_id(self):
+        val = db.get_state_value("pending_show_note_id", "")
+        return int(val) if val else None
+
+    def clear_pending_show_note_id(self):
+        db.delete_state_value("pending_show_note_id")
+    # -------------------------
+    # Clear both action + id together —
+    # convenience for the common case of
+    # ending a read/edit/delete flow cleanly,
+    # whether it completed or was cancelled.
+    # -------------------------
+    def clear_pending_note_action_full(self):
+        self.clear_pending_note_action()
+        self.clear_pending_note_id()

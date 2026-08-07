@@ -633,6 +633,97 @@
       "copy that to apple notes"
     ]
   },
+
+  "read_note": {
+    "examples": [
+      "what does my grocery note say",
+      "read me my grocery list note",
+      "what's in my study notes",
+      "read the note about the project deadline",
+      "what did I write in my grocery note",
+      "show me what my homework note says",
+      "read my note about the meeting",
+      "what's on my grocery list",
+      "read back the note titled study plan",
+      "what did I save in my ideas note",
+      "tell me what my grocery note says",
+      "read my note about groceries",
+      "what does the study list note say",
+      "pull up my grocery note",
+      "read me the note about the trip",
+      "what's written in my meeting note",
+      "read my dentist note",
+      "what's in the note called grocery list",
+      "read back my note about work",
+      "what did i write down about the project",
+      "read the note titled homework",
+      "check my grocery note",
+      "what does my note say about the trip",
+      "read my note titled ideas",
+      "tell me what i wrote in my study note"
+    ]
+  },
+
+  "edit_note": {
+    "examples": [
+      "edit my grocery note",
+      "change my grocery list note",
+      "update the note about the meeting",
+      "edit the note titled study plan",
+      "change what my homework note says",
+      "update my grocery note",
+      "i want to edit my study note",
+      "change the content of my grocery note",
+      "edit the note about the project",
+      "update my ideas note",
+      "rewrite my grocery note",
+      "change my note titled homework",
+      "edit my note about the trip",
+      "i need to update my grocery list",
+      "change what i wrote in my study note",
+      "edit the dentist note",
+      "update the note called grocery list",
+      "modify my grocery note",
+      "change the grocery note",
+      "edit my meeting note",
+      "i want to change my study plan note",
+      "update what my project note says",
+      "edit the note about work",
+      "change my ideas note",
+      "modify the note titled homework"
+    ]
+  },
+
+  "delete_note": {
+    "examples": [
+      "delete my grocery note",
+      "delete the note about the meeting",
+      "remove my study note",
+      "delete the note titled homework",
+      "get rid of my grocery list note",
+      "delete my ideas note",
+      "remove the note about the project",
+      "delete the dentist note",
+      "get rid of the note called grocery list",
+      "delete my meeting note",
+      "remove my homework note",
+      "delete the note about the trip",
+      "erase my grocery note",
+      "delete my study plan note",
+      "remove the grocery note",
+      "delete the note titled ideas",
+      "get rid of my project note",
+      "delete that note about work",
+      "remove my dentist note",
+      "delete the note about groceries",
+      "erase the note titled homework",
+      "delete my work note",
+      "remove that grocery list note",
+      "get rid of my meeting note",
+      "delete the note called study plan"
+    ]
+  },
+
   "vent": {
     "examples": [
       "i just need to vent for a second",

@@ -139,20 +139,37 @@ class _Handler(BaseHTTPRequestHandler):
             except Exception:
                 memory_turns = None
 
+            try:
+                from state import StateManager
+                _state_mgr = StateManager()
+                pending_note_stage = _state_mgr.get_pending_note_stage()
+                pending_note_title = _state_mgr.get_pending_note_title()
+                pending_note_content = _state_mgr.get_pending_note_content()
+                pending_show_note_id = _state_mgr.get_pending_show_note_id()
+            except Exception:
+                pending_note_stage = ""
+                pending_note_title = ""
+                pending_note_content = ""
+                pending_show_note_id = None
+
             payload = json.dumps({
-                "state"          : _state_ref.get() if _state_ref else "idle",
-                "response"       : _last_response,
-                "intent"         : _last_intent,
-                "raw_text"       : _last_raw_text,
-                "cpu"            : cpu_pct,
-                "battery"        : _battery_pct,
-                "uptime"         : _format_uptime(),
-                "memory_turns"   : memory_turns,
-                "ram_sys"        : mem["sys_used_gb"],
-                "ram_wired"      : mem["wired_gb"],
-                "ram_compressed" : mem["compressed_gb"],
-                "ram_app"        : mem["app_gb"],
-                "ram_arcn"       : mem["arcn_gb"],
+                "state"              : _state_ref.get() if _state_ref else "idle",
+                "response"           : _last_response,
+                "intent"             : _last_intent,
+                "raw_text"           : _last_raw_text,
+                "cpu"                : cpu_pct,
+                "battery"            : _battery_pct,
+                "uptime"             : _format_uptime(),
+                "memory_turns"       : memory_turns,
+                "ram_sys"            : mem["sys_used_gb"],
+                "ram_wired"          : mem["wired_gb"],
+                "ram_compressed"     : mem["compressed_gb"],
+                "ram_app"            : mem["app_gb"],
+                "ram_arcn"           : mem["arcn_gb"],
+                "pending_note_stage" : pending_note_stage,
+                "pending_note_title" : pending_note_title,
+                "pending_note_content" : pending_note_content,
+                "pending_show_note_id"  : pending_show_note_id,
             }).encode()
 
             self.send_response(200)

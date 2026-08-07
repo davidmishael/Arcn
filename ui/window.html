@@ -278,6 +278,277 @@
     justify-content:space-between; padding:0 32px;
     flex-shrink:0;
   }
+  /* ---------- notes grid — full screen overlay ---------- */
+  .notes-screen {
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:
+      radial-gradient(circle at 15% 15%, rgba(120,80,220,0.4) 0%, transparent 40%),
+      radial-gradient(circle at 85% 20%, rgba(60,180,200,0.28) 0%, transparent 40%),
+      radial-gradient(circle at 50% 30%, #232a42 0%, #181c30 55%, #10121f 100%);
+    z-index:100;
+    flex-direction:column;
+    padding:28px 32px;
+  }
+
+  .notes-screen.active {
+    display:flex;
+  }
+
+  .notes-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:24px;
+    flex-shrink:0;
+  }
+
+  .notes-title {
+    font-size:13px;
+    font-weight:500;
+    letter-spacing:0.3em;
+    text-transform:uppercase;
+    color:rgba(210,215,240,0.7);
+  }
+
+  .notes-close {
+    background:none;
+    border:0.5px solid rgba(180,190,225,0.2);
+    color:rgba(175,182,215,0.55);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    padding:6px 14px;
+    cursor:pointer;
+    border-radius:8px;
+    transition:border-color 0.2s, color 0.2s;
+  }
+
+  .notes-close:hover {
+    border-color:rgba(190,180,255,0.5);
+    color:#dfe3f0;
+  }
+
+  .notes-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+    gap:16px;
+    overflow-y:auto;
+    flex:1;
+  }
+
+  .note-card {
+    background:rgba(255,255,255,0.04);
+    border:0.5px solid rgba(180,190,225,0.15);
+    border-radius:12px;
+    padding:16px;
+    cursor:pointer;
+    transition:border-color 0.2s, background 0.2s;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-height:160px;
+  }
+
+  @keyframes note-card-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(190,180,255,0.6); border-color: rgba(190,180,255,0.8); }
+    70%  { box-shadow: 0 0 0 14px rgba(190,180,255,0); border-color: rgba(190,180,255,0.8); }
+    100% { box-shadow: 0 0 0 0 rgba(190,180,255,0); border-color: rgba(180,190,225,0.15); }
+  }
+
+  .note-card.highlighted {
+    animation: note-card-pulse 1.2s ease-out 2;
+  }
+
+  .note-card:hover {
+    border-color:rgba(190,180,255,0.4);
+    background:rgba(255,255,255,0.07);
+  }
+
+  .note-card-title {
+    font-size:13px;
+    font-weight:500;
+    color:rgba(220,224,245,0.9);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .note-card-preview {
+    font-size:12px;
+    font-weight:300;
+    line-height:1.5;
+    color:rgba(190,195,220,0.55);
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+  }
+
+  .notes-empty {
+    color:rgba(160,168,205,0.4);
+    font-size:13px;
+    text-align:center;
+    margin-top:60px;
+  }
+
+  /* ---------- note editor overlay ---------- */
+  .note-editor-overlay {
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(10,11,20,0.65);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    z-index:200;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .note-editor-overlay.active {
+    display:flex;
+  }
+
+  .note-editor-card {
+    width:620px;
+    max-width:90%;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(120,80,220,0.25) 0%, transparent 50%),
+      #1a1e33;
+    border:0.5px solid rgba(190,190,255,0.25);
+    border-radius:16px;
+    padding:24px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .note-editor-title-input {
+    background:none;
+    border:none;
+    border-bottom:0.5px solid rgba(180,190,225,0.2);
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    font-weight:500;
+    color:#dfe3f0;
+    padding:4px 2px 10px;
+    outline:none;
+  }
+
+  .note-editor-title-input::placeholder {
+    color:rgba(160,168,205,0.35);
+  }
+
+  .note-editor-content-input {
+    background:rgba(255,255,255,0.03);
+    border:0.5px solid rgba(180,190,225,0.15);
+    border-radius:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    line-height:1.6;
+    color:rgba(220,224,245,0.9);
+    padding:12px;
+    min-height:340px;
+    resize:vertical;
+    outline:none;
+  }
+
+  .note-editor-content-input::placeholder {
+    color:rgba(160,168,205,0.35);
+  }
+
+  .note-editor-actions {
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+  }
+
+  .note-editor-btn {
+    background:none;
+    border:0.5px solid rgba(180,190,225,0.2);
+    color:rgba(175,182,215,0.55);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    padding:8px 16px;
+    cursor:pointer;
+    border-radius:8px;
+    transition:border-color 0.2s, color 0.2s;
+  }
+
+  .note-editor-btn:hover {
+    border-color:rgba(190,180,255,0.5);
+    color:#dfe3f0;
+  }
+
+  .note-editor-btn.danger:hover {
+    border-color:rgba(240,120,120,0.6);
+    color:rgba(250,150,150,0.9);
+  }
+
+  .note-editor-btn.primary {
+    border-color:rgba(190,180,255,0.4);
+    color:rgba(210,200,255,0.9);
+  }
+
+  .note-editor-hint {
+    font-size:10px;
+    color:rgba(160,168,205,0.4);
+    text-align:center;
+  }
+
+  /* ---------- dashboard button row ---------- */
+  .tool-row {
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    padding:0 0 20px;
+    margin-top:-40px;
+    flex-shrink:0;
+    -webkit-app-region:no-drag;
+  }
+
+  .tool-btn {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:40px;
+    height:40px;
+    background:rgba(255,255,255,0.03);
+    border:0.5px solid rgba(180,190,225,0.15);
+    border-radius:2px;
+    cursor:pointer;
+    transition:border-color 0.2s, background 0.2s, transform 0.15s;
+  }
+
+  .tool-btn:hover {
+    border-color:rgba(190,180,255,0.5);
+    background:rgba(255,255,255,0.06);
+    transform:translateY(-2px);
+  }
+
+  .tool-btn.disabled {
+    opacity:0.35;
+    cursor:default;
+  }
+
+  .tool-btn.disabled:hover {
+    border-color:rgba(180,190,225,0.15);
+    background:rgba(255,255,255,0.03);
+    transform:none;
+  }
+
+  .tool-btn-icon {
+    font-size:16px;
+    line-height:1;
+  }
+
+
 
   .meta-row { display:flex; gap:24px; }
   .meta { font-size:11px; letter-spacing:0.12em; color:rgba(175,182,215,0.5); }
@@ -373,6 +644,24 @@
 
   </div>
 
+  <div class="tool-row">
+    <div class="tool-btn" id="btn-notes" onclick="openNotesGrid()">
+      <div class="tool-btn-icon">▤</div>
+    </div>
+    <div class="tool-btn disabled">
+      <div class="tool-btn-icon">⚙</div>      
+    </div>
+    <div class="tool-btn disabled">
+      <div class="tool-btn-icon">◔</div>
+    </div>
+    <div class="tool-btn disabled">
+      <div class="tool-btn-icon">◷</div>
+    </div>
+    <div class="tool-btn disabled">
+      <div class="tool-btn-icon">◉</div>
+    </div>
+  </div>
+
   <div class="bottom-bar">
     <div class="meta-row">
       <div class="meta"><span class="lbl">time</span><span id="clock">—</span></div>
@@ -385,6 +674,29 @@
 
 </div>
  
+<div class="notes-screen" id="notes-screen">
+  <div class="notes-header">
+    <div class="notes-title">Notes</div>
+    <button class="notes-close" onclick="closeNotesGrid()">close</button>
+  </div>
+  <div class="notes-grid" id="notes-grid">
+    <div class="notes-empty">No notes yet.</div>
+  </div>
+</div>
+
+<div class="note-editor-overlay" id="note-editor-overlay">
+  <div class="note-editor-card">
+    <input type="text" class="note-editor-title-input" id="editor-title" placeholder="Title" readonly>
+    <textarea class="note-editor-content-input" id="editor-content" placeholder="Note content..."></textarea>
+    <div class="note-editor-hint" id="editor-hint" style="display:none;">Being created by voice...</div>
+    <div class="note-editor-actions">
+      <button class="note-editor-btn danger" id="editor-delete-btn" onclick="deleteCurrentNote()">delete</button>
+      <button class="note-editor-btn" onclick="closeNoteEditor()">close</button>
+      <button class="note-editor-btn primary" id="editor-save-btn" onclick="saveCurrentNote()">save</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const winEl        = document.getElementById("window");
   const stateLabel    = document.getElementById("state-label");
@@ -453,6 +765,8 @@
     } else {
       statBattery.textContent = "—";
     }
+    checkVoiceNoteTrigger(d);
+    checkShowNoteTrigger(d);
   }
 
   function updateClock() {
@@ -462,6 +776,205 @@
   }
   setInterval(updateClock, 1000);
   updateClock();
+
+function openNotesGrid() {
+    document.getElementById("notes-screen").classList.add("active");
+    loadNotes();
+  }
+
+  function closeNotesGrid() {
+    document.getElementById("notes-screen").classList.remove("active");
+  }
+
+  async function loadNotes() {
+    const grid = document.getElementById("notes-grid");
+    try {
+      const notes = await window.pywebview.api.get_all_notes();
+
+      if (!notes || notes.length === 0) {
+        grid.innerHTML = '<div class="notes-empty">No notes yet.</div>';
+        return;
+      }
+
+      grid.innerHTML = notes.map(note => `
+        <div class="note-card" data-note-id="${note.id}" onclick="openNoteEditor(${note.id})">
+          <div class="note-card-title">${escapeHtml(note.title)}</div>
+          <div class="note-card-preview">${escapeHtml(note.content)}</div>
+        </div>
+      `).join("");
+
+    } catch (e) {
+      grid.innerHTML = '<div class="notes-empty">Couldn\'t load notes.</div>';
+      console.error("loadNotes failed:", e);
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str || "";
+    return div.innerHTML;
+  }
+
+  let currentEditorNoteId = null;
+  let editorIsVoiceMode = false;
+
+  async function openNoteEditor(noteId) {
+    const notes = await window.pywebview.api.get_all_notes();
+    const note = notes.find(n => n.id === noteId);
+    if (!note) return;
+
+    currentEditorNoteId = noteId;
+    editorIsVoiceMode = false;
+
+    document.getElementById("editor-title").value = note.title;
+    document.getElementById("editor-content").value = note.content;
+    document.getElementById("editor-hint").style.display = "none";
+    document.getElementById("editor-delete-btn").style.display = "inline-block";
+
+    document.getElementById("note-editor-overlay").classList.add("active");
+  }
+
+  function closeNoteEditor() {
+    if (voiceEditDebounceTimer) {
+      clearTimeout(voiceEditDebounceTimer);
+      voiceEditDebounceTimer = null;
+    }
+    postVoiceEditing = false;
+    document.getElementById("note-editor-overlay").classList.remove("active");
+    currentEditorNoteId = null;
+    editorIsVoiceMode = false;
+  }
+
+  async function saveCurrentNote() {
+    if (voiceEditDebounceTimer) {
+      clearTimeout(voiceEditDebounceTimer);
+      voiceEditDebounceTimer = null;
+    }
+    postVoiceEditing = false;
+    const content = document.getElementById("editor-content").value;
+
+    if (editorIsVoiceMode) {
+      const title = document.getElementById("editor-title").value;
+      await window.pywebview.api.finish_voice_note(title, content);
+      editorIsVoiceMode = false;
+      lastSeenPendingTitle = "";  // so a future poll won't think this is stale state
+      closeNoteEditor();
+      loadNotes();
+      return;
+    }
+
+    if (currentEditorNoteId === null) return;
+    await window.pywebview.api.save_note_edit(currentEditorNoteId, content);
+    closeNoteEditor();
+    loadNotes();
+  }
+
+  async function deleteCurrentNote() {
+    if (currentEditorNoteId === null) return;
+
+    await window.pywebview.api.delete_note_from_ui(currentEditorNoteId);
+    closeNoteEditor();
+    loadNotes();
+  }
+
+  // -------------------------
+  // Voice-triggered auto-open —
+  // watches pending_note_title via the existing
+  // poll loop. Opens read-only-title, live-editable-
+  // content overlay the moment a title is captured.
+  // -------------------------
+  let lastSeenPendingTitle = "";
+  let lastSeenShowNoteId = null;
+  let postVoiceEditing = false;
+  let voiceEditDebounceTimer = null;
+  const VOICE_EDIT_DEBOUNCE_MS = 4000; // inactivity window before auto-save+close
+
+  function resetVoiceEditDebounce() {
+    if (voiceEditDebounceTimer) clearTimeout(voiceEditDebounceTimer);
+    voiceEditDebounceTimer = setTimeout(finalizeVoiceEdit, VOICE_EDIT_DEBOUNCE_MS);
+  }
+
+  async function finalizeVoiceEdit() {
+    if (!postVoiceEditing) return;
+
+    const content = document.getElementById("editor-content").value;
+    if (currentEditorNoteId !== null) {
+      await window.pywebview.api.save_note_edit(currentEditorNoteId, content);
+    }
+
+    postVoiceEditing = false;
+    closeNoteEditor();
+    loadNotes();
+  }
+
+  function checkVoiceNoteTrigger(d) {
+    const pendingTitle = d.pending_note_title || "";
+
+    // Title just appeared — open the overlay in voice mode
+    if (pendingTitle && pendingTitle !== lastSeenPendingTitle) {
+      currentEditorNoteId = null;
+      editorIsVoiceMode = true;
+      postVoiceEditing = false;
+
+      document.getElementById("editor-title").value = pendingTitle;
+      document.getElementById("editor-content").value = "";
+      document.getElementById("editor-content").readOnly = false;
+      document.getElementById("editor-hint").style.display = "block";
+      document.getElementById("editor-delete-btn").style.display = "none";
+      document.getElementById("note-editor-overlay").classList.add("active");
+    }
+
+    // Reflect staged content while still mid-flow
+    const pendingContent = d.pending_note_content || "";
+    if (editorIsVoiceMode && !postVoiceEditing && pendingContent) {
+      document.getElementById("editor-content").value = pendingContent;
+    }
+
+    // Flow just ended (note now saved by backend) — transition into
+    // a live-editable post-voice state instead of closing immediately.
+    if (!pendingTitle && editorIsVoiceMode && !postVoiceEditing) {
+      editorIsVoiceMode = false;
+      postVoiceEditing = true;
+
+      window.pywebview.api.get_all_notes().then(notes => {
+        const match = notes.find(n => n.title === lastSeenPendingTitle);
+        currentEditorNoteId = match ? match.id : null;
+        document.getElementById("editor-hint").style.display = "none";
+        document.getElementById("editor-delete-btn").style.display =
+          currentEditorNoteId !== null ? "inline-block" : "none";
+        resetVoiceEditDebounce();
+      });
+    }
+
+    lastSeenPendingTitle = pendingTitle;
+  }
+
+  function checkShowNoteTrigger(d) {
+    const showId = d.pending_show_note_id;
+
+    if (showId !== null && showId !== undefined && showId !== lastSeenShowNoteId) {
+      lastSeenShowNoteId = showId;
+
+      document.getElementById("notes-screen").classList.add("active");
+
+      loadNotes().then(() => {
+        if (showId === -1) return; // no match — just land on the grid
+
+        const card = document.querySelector(`.note-card[data-note-id="${showId}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: "smooth", block: "center" });
+          card.classList.add("highlighted");
+          setTimeout(() => card.classList.remove("highlighted"), 2600);
+        }
+      });
+    } else if (showId === null) {
+      lastSeenShowNoteId = null;
+    }
+  }
+  
+  document.getElementById("editor-content").addEventListener("input", () => {
+    if (postVoiceEditing) resetVoiceEditDebounce();
+  });
 
   function poll() {
     fetch("http://localhost:7373/state")

@@ -203,6 +203,18 @@ def mark_note_exported(note_id: int):
     conn.commit()
     conn.close()
 
+def update_note_content(note_id: int, content: str) -> bool:
+    """Overwrite a note's content — used by edit_note voice flow."""
+    conn = get_connection()
+    cursor = conn.execute(
+        "UPDATE notes SET content = ?, updated_at = ? WHERE id = ?",
+        (content, datetime.now().isoformat(), note_id)
+    )
+    conn.commit()
+    updated = cursor.rowcount > 0
+    conn.close()
+    return updated
+
 
 def delete_note(note_id: int) -> bool:
     conn = get_connection()

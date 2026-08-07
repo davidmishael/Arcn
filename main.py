@@ -15,7 +15,6 @@ sys.path.append(os.path.join(ROOT, "memory"))
 sys.path.append(os.path.join(ROOT, "proactive"))  # proactive engine on path
 
 import webview
-from pynput import keyboard
 
 from pipeline import NLPBrain
 from core import CommandCenter
@@ -67,12 +66,36 @@ def _on_hotkey():
         _hotkey_event.set()
 
 def _start_hotkey_listener():
-    """Starts global hotkey listener as daemon thread."""
-    hotkey = keyboard.GlobalHotKeys({
-        "<cmd>+<shift>+<space>": _on_hotkey
-    })
-    hotkey.daemon = True
-    hotkey.start()
+    """
+    Global hotkey via pyobjc's NSEvent monitor instead of pynput —
+    pynput's GlobalHotKeys crashes with SIGTRAP on Caps Lock on this
+    machine. NSEvent is the native macOS mechanism and doesn't share
+    pynput's bug — but needs BOTH a global monitor (fires when Arcn is
+    NOT focused) and a local monitor (fires when Arcn IS focused),
+    since Apple's global monitor deliberately excludes your own app.
+    """
+    import AppKit
+
+    CMD_SHIFT = AppKit.NSEventModifierFlagCommand | AppKit.NSEventModifierFlagShift
+    SPACE_KEYCODE = 49  # macOS virtual keycode for spacebar
+
+    def _handler(event):
+        try:
+            if (event.modifierFlags() & CMD_SHIFT) == CMD_SHIFT and event.keyCode() == SPACE_KEYCODE:
+                _on_hotkey()
+        except Exception as e:
+            print(f"[hotkey] handler error: {e}")
+
+    def _local_handler(event):
+        _handler(event)
+        return event  # must return the event so it still propagates normally
+
+    AppKit.NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
+        AppKit.NSEventMaskKeyDown, _handler
+    )
+    AppKit.NSEvent.addLocalMonitorForEventsMatchingMask_handler_(
+        AppKit.NSEventMaskKeyDown, _local_handler
+    )
 
 # -------------------------
 # Icon path
@@ -157,8 +180,7 @@ def assistant_loop():
                     set_last_raw_text(text)
                     result = cc.handle(packet)
 
-                    set_last_intent(packet.get("intent", ""))
-                    result = cc.handle(packet)
+                    
 
                     response = result.get("response", "")
                     if response:
@@ -201,7 +223,9 @@ win, api = create_window(ICON_PATH)
 def on_webview_started():
     # Start global hotkey listener — always running regardless of WAKE_WORD_ON
     # costs zero CPU, harmless when wake word is on
-    _start_hotkey_listener()
+
+
+    _start_hotkey_listener() 
 
     # Assistant loop — daemon thread
     t = threading.Thread(target=assistant_loop, daemon=True)

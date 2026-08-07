@@ -46,7 +46,26 @@ class CommandCenter:
         # misrouted by the classifier
         # -------------------------
         if self.state.get_pending_note_stage():
-            intent = "take_note"
+            # Let a genuine cancel intent escape the note flow instead of
+            # being force-fed into take_note as if it were the title/content.
+            if intent == "stop_cancel":
+                self.state.clear_pending_note_stage()
+                self.state.clear_pending_note_title()
+            else:
+                intent = "take_note"
+                requires_clarification = False
+
+        # -------------------------
+        # If a read/edit/delete note action is pending confirmation,
+        # force the reply back into that same tool — "yes"/"no" would
+        # otherwise misclassify as stop_cancel or unknown_intent.
+        # -------------------------
+        pending_note_action = self.state.get_pending_note_action()
+        if pending_note_action == "delete":
+            intent = "delete_note"
+            requires_clarification = False
+        elif pending_note_action == "edit":
+            intent = "edit_note"
             requires_clarification = False
 
         # -------------------------

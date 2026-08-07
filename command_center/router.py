@@ -46,6 +46,9 @@ INTENT_MAP = {
     # notes
     ("take_note", None)          : "take_note",
     ("export_note_mac", None)    : "export_note_mac",
+    ("read_note", None)          : "read_note",
+    ("edit_note", None)          : "edit_note",
+    ("delete_note", None)        : "delete_note",
 
     # personality
     ("greet", None)              : "greet",

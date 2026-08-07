@@ -15,6 +15,55 @@ class Api:
         if self._win:
             self._win.hide()
 
+    # -------------------------
+    # Notes CRUD — called directly
+    # from JS via window.pywebview.api.*
+    # Bypasses CommandCenter/router entirely —
+    # a click isn't a voice command, no reason
+    # to force it through NLP/intent classification.
+    # -------------------------
+    def get_all_notes(self):
+        import sys, os
+        sys.path.append(os.path.join(ROOT, "memory"))
+        import db
+        return db.get_recent_notes(50)
+
+    def save_note_edit(self, note_id, content):
+        import sys, os
+        sys.path.append(os.path.join(ROOT, "memory"))
+        import db
+        success = db.update_note_content(int(note_id), content)
+        return {"success": success}
+
+    def delete_note_from_ui(self, note_id):
+        import sys, os
+        sys.path.append(os.path.join(ROOT, "memory"))
+        import db
+        success = db.delete_note(int(note_id))
+        return {"success": success}
+    
+    def finish_voice_note(self, title, content):
+        """
+        Called when the user types + saves during a voice-triggered
+        note creation, instead of letting the spoken content finish it.
+        Creates the note directly and clears backend pending state so
+        the voice flow doesn't also try to save separately.
+        """
+        import sys, os
+        sys.path.append(os.path.join(ROOT, "memory"))
+        sys.path.append(os.path.join(ROOT, "command_center"))
+        import db
+        from state import StateManager
+
+        note_id = db.create_note(title, content)
+
+        state = StateManager()
+        state.clear_pending_note_stage()
+        state.clear_pending_note_title()
+        state.clear_pending_note_content()
+
+        return {"success": True, "note_id": note_id}
+
 def create_window(icon_path: str) -> tuple:
     html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "window.html")
 

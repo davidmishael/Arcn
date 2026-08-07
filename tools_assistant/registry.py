@@ -1,4 +1,5 @@
 import os
+import time
 import urllib.parse
 import threading
 import datetime
@@ -10,7 +11,7 @@ import subprocess
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-DEFAULT_CITY = "Chennai"
+DEFAULT_CITY = "Toronto"
 
 
 # -------------------------
@@ -335,11 +336,20 @@ def take_note(entities: dict = {}):
     import db  # SQLite notes live here now
     state = StateManager()
 
-    stage = state.get_pending_note_stage()
-    raw   = entities.get("raw_text", "").strip()
+    stage        = state.get_pending_note_stage()
+    raw          = entities.get("raw_text", "").strip()
+    title_entity = entities.get("title", "").strip()
 
     # ── Stage 0: fresh "take a note" — kick off the flow ──
     if not stage:
+        # Title was given inline ("make a note called study list") —
+        # skip the title prompt entirely, go straight to content.
+        if title_entity:
+            state.set_pending_note_title(title_entity)
+            print(f"DEBUG stage0 set title to: {repr(title_entity)}, readback: {repr(state.get_pending_note_title())}")
+            state.set_pending_note_stage("awaiting_content")
+            return "What should the note say?"
+
         state.set_pending_note_stage("awaiting_title")
         return "What do you want to title it?"
 
@@ -359,7 +369,14 @@ def take_note(entities: dict = {}):
         if not content:
             return "What should the note say?"
 
+        state.set_pending_note_content(content)  # stage for UI visibility before save
         note_id = db.create_note(title, content)
+
+        time.sleep(1.2)  # hold pending state open long enough for the UI's
+                          # 500ms poll loop to actually see the saved content
+                          # before we clear it and the overlay auto-closes
+
+        state.clear_pending_note_content()
         state.set_last_note_id(note_id)
 
         state.clear_pending_note_stage()
@@ -398,8 +415,7 @@ def export_note_mac(entities: dict = {}):
 
     script = f'''
     tell application "Notes"
-        make new note at folder "Notes" with properties {{name:"{safe_title}", body:"{safe_title}
-{safe_content}"}}
+        make new note at folder "Notes" with properties {{name:"{safe_title}", body:"{safe_content}"}}
     end tell
     '''
 
@@ -425,6 +441,119 @@ def export_note_mac(entities: dict = {}):
         "Copied over to Apple Notes.",
     ])
 
+# -------------------------
+# Shared single-match lookup —
+# used by read_note / edit_note / delete_note.
+# Deliberately fails on 0 or 2+ matches rather
+# than guessing — minimum viable disambiguation.
+# -------------------------
+def _find_single_note(note_query: str):
+    import db
+
+    if not note_query:
+        return None, "Which note do you mean?"
+
+    matches = db.search_notes_by_title(note_query)
+
+    if not matches:
+        return None, f"I couldn't find a note matching '{note_query}'."
+
+    if len(matches) > 1:
+        return None, "I found more than one note matching that — try being more specific."
+
+    return matches[0], None
+
+
+def read_note(entities: dict = {}):
+    from state import StateManager
+    state = StateManager()
+
+    note_query = entities.get("note_query", "").strip()
+    note, error = _find_single_note(note_query)
+
+    if error:
+        # Even on failure, open the grid — better than a dead end
+        state.set_pending_show_note_id(-1)  # -1 = "open grid, nothing to highlight"
+        return error
+
+    state.set_pending_show_note_id(note["id"])
+    return f"{note['title']} — {note['content']}"
+
+
+def delete_note(entities: dict = {}):
+    from state import StateManager
+    import db
+    state = StateManager()
+
+    pending_action = state.get_pending_note_action()
+
+    # ── Awaiting yes/no confirmation ──
+    if pending_action == "delete":
+        raw = entities.get("raw_text", "").strip().lower()
+        note_id = state.get_pending_note_id()
+
+        confirm_words = ["yes", "yeah", "yep", "confirm", "delete it", "do it"]
+        cancel_words  = ["no", "nope", "cancel", "nevermind", "don't", "stop"]
+
+        if any(w in raw for w in confirm_words):
+            note = db.get_note(note_id)
+            db.delete_note(note_id)
+            state.clear_pending_note_action_full()
+            title = note["title"] if note else "that note"
+            return f"Deleted — {title}."
+
+        if any(w in raw for w in cancel_words):
+            state.clear_pending_note_action_full()
+            return "Okay, keeping it."
+
+        # Neither confirm nor cancel — re-ask, stay pending
+        state.set_needs_followup(True)
+        return "Say yes to confirm the delete, or no to cancel."
+
+    # ── Fresh delete request — search first ──
+    note_query = entities.get("note_query", "").strip()
+    note, error = _find_single_note(note_query)
+    if error:
+        return error
+
+    state.set_pending_note_action("delete")
+    state.set_pending_note_id(note["id"])
+    state.set_needs_followup(True)
+    return f"Delete '{note['title']}'? Say yes to confirm."
+
+
+def edit_note(entities: dict = {}):
+    from state import StateManager
+    import db
+    state = StateManager()
+
+    pending_action = state.get_pending_note_action()
+
+    # ── Awaiting new content ──
+    if pending_action == "edit":
+        raw = entities.get("raw_text", "").strip()
+        note_id = state.get_pending_note_id()
+
+        if not raw:
+            state.set_needs_followup(True)
+            return "What should it say instead?"
+
+        db.update_note_content(note_id, raw)
+        note = db.get_note(note_id)
+        title = note["title"] if note else "the note"
+        state.clear_pending_note_action_full()
+        return f"Updated — {title}."
+
+    # ── Fresh edit request — search first ──
+    note_query = entities.get("note_query", "").strip()
+    note, error = _find_single_note(note_query)
+    if error:
+        return error
+
+    state.set_pending_note_action("edit")
+    state.set_pending_note_id(note["id"])
+    state.set_needs_followup(True)
+    return f"What should '{note['title']}' say instead?"
 
 # -------------------------
 # MODES
@@ -788,7 +917,9 @@ TOOLS = {
     # NOTES
     "take_note"         : {"function": take_note,          "confirmation": "Note saved.",                "type": "note",        "expects_followup": True},
     "export_note_mac"   : {"function": export_note_mac,   "confirmation": "",                           "type": "note",        "expects_followup": False},
-
+    "read_note"         : {"function": read_note,          "confirmation": "",                           "type": "note",        "expects_followup": False},
+    "edit_note"         : {"function": edit_note,           "confirmation": "",                           "type": "note",        "expects_followup": False},
+    "delete_note"       : {"function": delete_note,         "confirmation": "",                           "type": "note",        "expects_followup": True},
     # PERSONALITY
     "greet"             : {"function": greet,              "confirmation": "",                           "type": "personality", "expects_followup": False},
     "how_are_you"       : {"function": how_are_you,        "confirmation": "",                           "type": "personality", "expects_followup": False},

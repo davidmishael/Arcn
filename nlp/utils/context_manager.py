@@ -40,7 +40,7 @@ class ContextManager:
 
         # Update last turn
         self.last_intent   = intent
-        self.last_entities = entities
+        self.last_entities = dict(entities)
         self.last_message  = message
 
         # Merge new entities into running slots
