@@ -25,6 +25,8 @@ from wake_word import load_wake_word_model, wait_for_wake_word
 from ui.window_manager import create_window
 from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response, set_icon_path, set_boot_time, set_last_raw_text
 import engine as proactive_engine  # proactive engine
+from speaker import speak, mute, unmute, is_muted
+
 
 # -------------------------
 # Shared state
@@ -78,11 +80,32 @@ def _start_hotkey_listener():
 
     CMD_SHIFT = AppKit.NSEventModifierFlagCommand | AppKit.NSEventModifierFlagShift
     SPACE_KEYCODE = 49  # macOS virtual keycode for spacebar
+    MUTE_KEYCODE  = 46  # macOS virtual keycode for "M" — verify via debug print below if this doesn't fire
 
+    import time
+    _last_mute_press = 0.0
+    MUTE_DEBOUNCE_SECONDS = 0.4  # ignore repeat triggers within this window
+
+    def _on_mute_hotkey():
+        nonlocal _last_mute_press
+        now = time.time()
+        if now - _last_mute_press < MUTE_DEBOUNCE_SECONDS:
+            return  # bounce — same physical press registering twice
+        _last_mute_press = now
+
+        if is_muted():
+            threading.Thread(target=unmute, daemon=True).start()
+        else:
+            mute()
     def _handler(event):
         try:
-            if (event.modifierFlags() & CMD_SHIFT) == CMD_SHIFT and event.keyCode() == SPACE_KEYCODE:
-                _on_hotkey()
+            
+
+            if (event.modifierFlags() & CMD_SHIFT) == CMD_SHIFT:
+                if event.keyCode() == SPACE_KEYCODE:
+                    _on_hotkey()
+                elif event.keyCode() == MUTE_KEYCODE:
+                    _on_mute_hotkey()
         except Exception as e:
             print(f"[hotkey] handler error: {e}")
 

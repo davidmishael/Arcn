@@ -784,6 +784,8 @@ function openNotesGrid() {
 
   function closeNotesGrid() {
     document.getElementById("notes-screen").classList.remove("active");
+    window.pywebview.api.clear_show_note_trigger();
+    lastSeenShowNoteId = null;   // reset local tracking too, not just backend
   }
 
   async function loadNotes() {
@@ -825,6 +827,9 @@ function openNotesGrid() {
 
     currentEditorNoteId = noteId;
     editorIsVoiceMode = false;
+
+    window.pywebview.api.clear_show_note_trigger();
+    lastSeenShowNoteId = null;
 
     document.getElementById("editor-title").value = note.title;
     document.getElementById("editor-content").value = note.content;

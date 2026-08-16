@@ -11,7 +11,7 @@ import subprocess
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-DEFAULT_CITY = "Toronto"
+DEFAULT_CITY = "Montreal"
 
 
 # -------------------------
@@ -274,8 +274,7 @@ def set_timer(entities: dict = {}):
         cancelled = _timer_cancel.wait(timeout=seconds)
         if not cancelled:
             os.system("osascript -e 'display notification \"Timer is up!\" with title \"Arcn\"'")
-            _speak("Time's up.")
-
+            _speak("Time's up.", bypass_mute=True)   # timer alerts speak even while muted — Task 1 spec
     _timer_thread = threading.Thread(target=countdown, daemon=True)
     _timer_thread.start()
 

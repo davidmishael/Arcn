@@ -63,6 +63,22 @@ class Api:
         state.clear_pending_note_content()
 
         return {"success": True, "note_id": note_id}
+    
+    def clear_show_note_trigger(self):
+        """
+        Called when the notes grid is closed (either via the close
+        button or after opening a note to edit). Without this,
+        pending_show_note_id never gets cleared from SQLite and
+        the grid auto-reopens on every future boot.
+        """
+        import sys, os
+        sys.path.append(os.path.join(ROOT, "command_center"))
+        from state import StateManager
+
+        state = StateManager()
+        state.clear_pending_show_note_id()
+
+        return {"success": True}
 
 def create_window(icon_path: str) -> tuple:
     html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "window.html")
