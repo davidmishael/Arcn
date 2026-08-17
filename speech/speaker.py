@@ -1,6 +1,8 @@
 import threading
 import sounddevice as sd
 from kokoro import KPipeline
+from scipy.signal import resample_poly
+from fractions import Fraction
 
 
 # -------------------------
@@ -10,6 +12,10 @@ VOICE       = "am_michael"  # options: *af_heart, af_bella, af_sarah, *am_adam, 
 LANG_CODE   = "a"         # "a" = American English, "b" = British English
 SAMPLE_RATE = 24000
 
+# -------------------------
+# Output device selection
+# -------------------------
+TARGET_BT_DEVICE_NAME = "ARCN speaker"
 
 # -------------------------
 # Global audio lock
@@ -77,6 +83,50 @@ _pipeline = KPipeline(lang_code=LANG_CODE)
 print("  Kokoro ready")
 
 
+
+# -------------------------
+# Output device selection —
+# Prefers the Bluetooth speaker ("Office speaker") when connected.
+# Falls back to the Mac's default output device (speakers/headphones)
+# if the Bluetooth speaker isn't currently connected — covers using
+# Arcn away from the room it's normally in.
+# Re-checked on every speak() call since Bluetooth connection state
+# can change mid-session — this is a cheap query, not worth caching.
+# -------------------------
+def _get_output_device():
+    try:
+        devices = sd.query_devices()
+        for i, dev in enumerate(devices):
+            if dev['name'] == TARGET_BT_DEVICE_NAME and dev['max_output_channels'] > 0:
+                return i
+    except Exception as e:
+        print(f"[speaker] device query failed: {e}")
+
+    # Not found / not connected — None tells sounddevice to use
+    # the system default output (Mac speakers or whatever's active)
+    return None
+
+# -------------------------
+# Determine target sample rate —
+# queries the ACTUAL output device's native rate instead of
+# assuming Kokoro's 24000Hz will play cleanly everywhere.
+# Bluetooth in particular won't tolerate a mismatch gracefully —
+# it produces the cracking/distortion we heard on the ARCN speaker.
+# -------------------------
+def _get_target_samplerate(device):
+    try:
+        if device is None:
+            device = sd.default.device[1]  # resolve system default output index
+        info = sd.query_devices(device)
+        return int(info['default_samplerate'])
+    except Exception as e:
+        print(f"[speaker] samplerate query failed: {e}")
+        return SAMPLE_RATE  # fall back to Kokoro's native rate — no resampling occurs
+
+# -------------------------
+# Public speak function
+# ...rest of the docstring
+
 # -------------------------
 # Public speak function
 #
@@ -110,8 +160,12 @@ def speak(text: str, bypass_mute: bool = False):
         try:
             generator = _pipeline(text, voice=VOICE)
 
+            output_device = _get_output_device()
+            target_rate = _get_target_samplerate(output_device)
+
             with sd.OutputStream(
-                samplerate=SAMPLE_RATE,
+                device=output_device,
+                samplerate=target_rate,
                 channels=1,
                 dtype="float32"
             ) as stream:
@@ -125,7 +179,14 @@ def speak(text: str, bypass_mute: bool = False):
                     audio = audio.detach().cpu().numpy()
                     audio = np.clip(audio, -1.0, 1.0).astype(np.float32)
 
-                    chunk_duration = len(audio) / SAMPLE_RATE
+                    # Resample from Kokoro's native rate to the device's rate —
+                    # skip the work entirely if they already match
+                    if target_rate != SAMPLE_RATE:
+                        ratio = Fraction(target_rate, SAMPLE_RATE).limit_denominator(1000)
+                        audio = resample_poly(audio, ratio.numerator, ratio.denominator).astype(np.float32)
+                    
+
+                    chunk_duration = len(audio) / target_rate
                     write_start = time.time()
 
                     interrupted = False

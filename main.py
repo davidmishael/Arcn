@@ -3,6 +3,8 @@ import os
 import time
 import threading
 
+
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.join(ROOT, "nlp"))
@@ -26,6 +28,8 @@ from ui.window_manager import create_window
 from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response, set_icon_path, set_boot_time, set_last_raw_text
 import engine as proactive_engine  # proactive engine
 from speaker import speak, mute, unmute, is_muted
+import bt_watcher
+
 
 
 # -------------------------
@@ -130,6 +134,10 @@ ICON_PATH = os.path.join(ROOT, "assets", "arcn_icon.png")
 # -------------------------
 nlp = NLPBrain()
 cc  = CommandCenter(TOOLS)
+
+from state import StateManager
+StateManager().clear_all_pending()
+
 ww_model, ww_config, ww_device = load_wake_word_model()
 
 SHUTDOWN_WORDS = ["goodbye", "shut down", "exit arcn", "stop arcn", "quit"]
@@ -225,9 +233,10 @@ def assistant_loop():
 
                 except Exception as e:
                     print(f"[assistant_loop] turn failed: {e}")
+                    from state import StateManager
+                    StateManager().clear_all_pending()
                     state.set("idle")
                     break  # drop back to waiting for next trigger, don't kill the thread
-
     except KeyboardInterrupt:
         print("\nInterrupted.")
         cc.shutdown()
@@ -256,6 +265,7 @@ def on_webview_started():
 
     # Proactive engine — daemon thread
     proactive_engine.start(state)
+    bt_watcher.start()
 
 webview.start(on_webview_started)
 

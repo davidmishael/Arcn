@@ -185,3 +185,25 @@ class StateManager:
     def clear_pending_note_action_full(self):
         self.clear_pending_note_action()
         self.clear_pending_note_id()
+
+    # -------------------------
+    # Boot-time / crash-recovery purge —
+    # wipes every conversational pending_* flag at once.
+    # Called (a) once at boot in main.py, so a flow left
+    # stuck by a crash/force-quit doesn't hijack the first
+    # command of a new session, and (b) from the exception
+    # handler in main.py's inner loop, so a crash mid-flow
+    # doesn't leave it stuck for the rest of THIS session either.
+    #
+    # Deliberately does NOT touch pending_show_note_id — that's
+    # UI-grid-reopen state, not a conversation flow, and clearing
+    # it here would be unrelated scope creep on this fix.
+    # -------------------------
+    def clear_all_pending(self):
+        self.clear_pending_reminder()
+        self.clear_pending_date()
+        self.clear_pending_note_stage()
+        self.clear_pending_note_title()
+        self.clear_pending_note_content()
+        self.clear_pending_note_action_full()  # clears action + id together
+        self.clear_needs_followup()

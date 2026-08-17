@@ -146,6 +146,8 @@ class Router:
             }
 
         except Exception as e:
+            from state import StateManager
+            StateManager().clear_all_pending()
             return {
                 "status"          : "failed",
                 "intent"          : intent,

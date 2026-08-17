@@ -127,7 +127,9 @@ class CommandCenter:
     # session cleanly
     # -------------------------
     def shutdown(self):
+        self.state.clear_all_pending()
         self.memory.close()
+        
 
     # -------------------------
     # Clarification response

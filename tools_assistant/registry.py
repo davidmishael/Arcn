@@ -346,6 +346,7 @@ def take_note(entities: dict = {}):
         if title_entity:
             state.set_pending_note_title(title_entity)
             print(f"DEBUG stage0 set title to: {repr(title_entity)}, readback: {repr(state.get_pending_note_title())}")
+            raise RuntimeError("test crash — remove after confirming cleanup")
             state.set_pending_note_stage("awaiting_content")
             return "What should the note say?"
 
