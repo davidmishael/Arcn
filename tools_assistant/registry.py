@@ -128,10 +128,34 @@ def open_vscode(entities: dict = {}):
         "VS Code up.",
     ])
 
+def open_app_generic(entities: dict = {}):
+    app_name = entities.get("app", "").strip()
+    if not app_name:
+        return "I didn't catch which app to open."
+    safe_name = app_name.replace('"', '\\"')  # escape quotes — unlike create_reminder's gap
+    result = os.system(f'open -a "{safe_name}"')
+    if result != 0:
+        return f"Couldn't find an app called {app_name}."
+    return f"Opening {app_name}."
 
 # -------------------------
 # CONTROL TOOLS
 # -------------------------
+
+def _parse_amount(entities: dict, default: int = 10) -> int:
+    """
+    Extract a numeric step from entities, clamped to a sane range.
+    Handles "50%" (percent_match) and bare digit strings (CARDINAL/bare_number).
+    Falls back to `default` if nothing usable was extracted.
+    """
+    amount = entities.get("amount", "")
+    if not amount:
+        return default
+    digits = "".join(c for c in str(amount) if c.isdigit())
+    if not digits:
+        return default
+    value = int(digits)
+    return max(1, min(value, 100))  # clamp — no negative or runaway steps
 
 def close_app(entities: dict = {}):
     os.system(
@@ -144,25 +168,18 @@ def close_app(entities: dict = {}):
     ])
 
 def increase_volume(entities: dict = {}):
+    step = _parse_amount(entities, default=10)
     os.system(
-        "osascript -e \"set volume output volume ((output volume of (get volume settings)) + 10)\""
+        f"osascript -e \"set volume output volume (((output volume of (get volume settings)) + {step}))\""
     )
-    return random.choice([
-        "Volume up.",
-        "Louder.",
-        "Turned it up.",
-    ])
+    return f"Volume up {step}."
 
 def decrease_volume(entities: dict = {}):
+    step = _parse_amount(entities, default=10)
     os.system(
-        "osascript -e \"set volume output volume ((output volume of (get volume settings)) - 10)\""
+        f"osascript -e \"set volume output volume (((output volume of (get volume settings)) - {step}))\""
     )
-    return random.choice([
-        "Volume down.",
-        "Quieter.",
-        "Turned it down.",
-    ])
-
+    return f"Volume down {step}."
 def mute_volume(entities: dict = {}):
     os.system(
         "osascript -e \"set volume with output muted\""
@@ -182,24 +199,18 @@ def lock_mac(entities: dict = {}):
     ])
 
 def increase_brightness(entities: dict = {}):
-    os.system(
-        "osascript -e 'tell application \"System Events\" to key code 144'"
-    )
-    return random.choice([
-        "Brighter.",
-        "Brightness up.",
-        "Turned it up.",
-    ])
+    step = _parse_amount(entities, default=10)
+    presses = max(1, round(step / 10))  # rough approximation — verify actual step size on your hardware, don't trust this number blind
+    for _ in range(presses):
+        os.system("osascript -e 'tell application \"System Events\" to key code 144'")
+    return "Brightness up."
 
 def decrease_brightness(entities: dict = {}):
-    os.system(
-        "osascript -e 'tell application \"System Events\" to key code 145'"
-    )
-    return random.choice([
-        "Dimmed.",
-        "Brightness down.",
-        "Turned it down.",
-    ])
+    step = _parse_amount(entities, default=10)
+    presses = max(1, round(step / 10))
+    for _ in range(presses):
+        os.system("osascript -e 'tell application \"System Events\" to key code 145'")
+    return "Brightness down."
 
 
 # -------------------------
@@ -345,14 +356,13 @@ def take_note(entities: dict = {}):
         # skip the title prompt entirely, go straight to content.
         if title_entity:
             state.set_pending_note_title(title_entity)
-            print(f"DEBUG stage0 set title to: {repr(title_entity)}, readback: {repr(state.get_pending_note_title())}")
-            raise RuntimeError("test crash — remove after confirming cleanup")
             state.set_pending_note_stage("awaiting_content")
+            
             return "What should the note say?"
 
         state.set_pending_note_stage("awaiting_title")
         return "What do you want to title it?"
-
+    
     # ── Stage 1: this reply is the title ──
     if stage == "awaiting_title":
         if not raw:
@@ -892,6 +902,7 @@ TOOLS = {
     "open_settings"     : {"function": open_settings,      "confirmation": "Opening Settings.",          "type": "app",         "expects_followup": False},
     "open_vscode"       : {"function": open_vscode,        "confirmation": "Opening VS Code.",           "type": "app",         "expects_followup": False},
     "open_spotify"      : {"function": open_spotify,       "confirmation": "Opening Spotify.",           "type": "app",         "expects_followup": False},
+    "open_app_generic"  : {"function": open_app_generic,   "confirmation": "Opening.",                   "type": "app",         "expects_followup": False},
 
     # CONTROLS
     "close_app"         : {"function": close_app,          "confirmation": "Closed.",                    "type": "control",     "expects_followup": False},
@@ -917,7 +928,7 @@ TOOLS = {
     # NOTES
     "take_note"         : {"function": take_note,          "confirmation": "Note saved.",                "type": "note",        "expects_followup": True},
     "export_note_mac"   : {"function": export_note_mac,   "confirmation": "",                           "type": "note",        "expects_followup": False},
-    "read_note"         : {"function": read_note,          "confirmation": "",                           "type": "note",        "expects_followup": False},
+    "read_note"         : {"function": read_note,          "confirmation": "",                           "type": "note",        "expects_followup": True},
     "edit_note"         : {"function": edit_note,           "confirmation": "",                           "type": "note",        "expects_followup": False},
     "delete_note"       : {"function": delete_note,         "confirmation": "",                           "type": "note",        "expects_followup": True},
     # PERSONALITY
