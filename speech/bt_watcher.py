@@ -12,6 +12,30 @@ MAC_SPEAKERS_NAME  = "MacBook Pro Speakers"
 
 CHECK_INTERVAL_SECONDS = 30
 
+# -------------------------
+# Tracks consecutive "Bluetooth off" cycles so we don't spam
+# the same log line every 30s — only logs on the transition
+# into the off state, not every check while it stays off.
+# -------------------------
+_bluetooth_was_off = False
+
+# -------------------------
+# Bluetooth power check —
+# If Bluetooth itself is off, there's no radio to talk to at all.
+# Checking this first avoids blueutil --connect hanging until timeout
+# on every single cycle when Bluetooth is deliberately turned off.
+# -------------------------
+def _bluetooth_is_powered_on() -> bool:
+    try:
+        result = subprocess.run(
+            ["blueutil", "--power"],
+            capture_output=True, text=True, timeout=5
+        )
+        return result.stdout.strip() == "1"
+    except Exception:
+        return False  # assume off if we can't tell — avoids hanging elsewhere
+
+
 
 # -------------------------
 # Reconnect check —
@@ -20,6 +44,18 @@ CHECK_INTERVAL_SECONDS = 30
 # silently if the device isn't reachable — safe to call repeatedly.
 # -------------------------
 def _try_reconnect_speaker():
+    global _bluetooth_was_off
+
+    if not _bluetooth_is_powered_on():
+        if not _bluetooth_was_off:
+            print("[bt_watcher] Bluetooth is off — pausing reconnect attempts until it's back on.")
+            _bluetooth_was_off = True
+        return
+
+    if _bluetooth_was_off:
+        print("[bt_watcher] Bluetooth is back on — resuming reconnect checks.")
+        _bluetooth_was_off = False
+
     try:
         result = subprocess.run(
             ["blueutil", "--is-connected", ARCN_SPEAKER_MAC],
@@ -36,8 +72,6 @@ def _try_reconnect_speaker():
             if connect_result.returncode == 0:
                 print("[bt_watcher] Reconnect attempt sent successfully.")
             else:
-                # This is the expected outcome if the speaker's radio is
-                # fully asleep (not just disconnected) — see Step 5 caveat.
                 print(f"[bt_watcher] Reconnect failed: {connect_result.stderr.strip()}")
 
     except subprocess.TimeoutExpired:

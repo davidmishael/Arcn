@@ -267,8 +267,7 @@ def on_webview_started():
     proactive_engine.start(state)
     bt_watcher.start()
 
-webview.start(on_webview_started)
-
+webview.start(on_webview_started, debug=True)
 # -------------------------
 # pywebview owns main thread
 # -------------------------
