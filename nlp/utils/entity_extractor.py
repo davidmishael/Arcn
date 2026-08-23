@@ -403,6 +403,18 @@ def extract_entities(text: str, intent: str = "unknown_intent") -> dict:
     # Merge — spaCy takes priority, regex fills gaps
     merged = {**regex_ents, **spacy_ents, **topic_ents}
 
+    # Generic app-name fallback for open_app — KNOWN_APPS above only
+    # catches apps we've hardcoded. For anything else, strip common
+    # launch verbs/filler and treat whatever's left as the app name,
+    # so the router's open_app_generic fallback has something to work with.
+    if intent == "open_app" and "app" not in merged:
+        cleaned = text.lower()
+        for phrase in ["open up", "start up", "pull up", "launch", "open", "start", "please", "can you", "could you"]:
+            cleaned = re.sub(rf'\b{re.escape(phrase)}\b', '', cleaned)
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip(" .?!")
+        if cleaned:
+            merged["app"] = cleaned
+
     # 4. Filter to relevant slots for this intent
     filtered = _filter_by_intent(merged, intent)
 

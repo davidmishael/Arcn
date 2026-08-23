@@ -109,6 +109,11 @@ class Router:
         if key:
             return key
 
+        # Generic fallback — unrecognized app name still gets
+        # a real launch attempt instead of silently no-op'ing.
+        if intent == "open_app" and app:
+            return "open_app_generic"
+
         # Last resort — direct match in tools registry
         return intent
 
