@@ -867,15 +867,30 @@ def create_reminder(entities: dict = {}):
 
     date_str = reminder_dt.strftime("%B %d, %Y %I:%M %p")
 
+    safe_topic = topic.replace("\\", "\\\\").replace('"', '\\"')
+
     script = f'''
     tell application "Reminders"
         set newReminder to make new reminder
-        set name of newReminder to "{topic}"
+        set name of newReminder to "{safe_topic}"
         set due date of newReminder to date "{date_str}"
     end tell
     '''
 
-    os.system(f"osascript -e '{script}'")
+    try:
+        subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"[create_reminder] osascript failed: {e.stderr}")
+        return "Couldn't set that reminder."
+    except subprocess.TimeoutExpired:
+        print("[create_reminder] osascript timed out")
+        return "Couldn't set that reminder — timed out."
     return random.choice([
         f"Done — {topic} at {reminder_dt.strftime('%I:%M %p on %B %d')}.",
         f"Reminder set. {topic} at {reminder_dt.strftime('%I:%M %p')} on {reminder_dt.strftime('%B %d')}.",
