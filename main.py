@@ -18,6 +18,7 @@ sys.path.append(os.path.join(ROOT, "proactive"))  # proactive engine on path
 
 import webview
 
+
 from pipeline import NLPBrain
 from core import CommandCenter
 from registry import TOOLS
@@ -27,8 +28,9 @@ from wake_word import load_wake_word_model, wait_for_wake_word
 from ui.window_manager import create_window
 from ui.state_server import set_last_intent, start as start_state_server, set_state_source, set_last_response, set_icon_path, set_boot_time, set_last_raw_text
 import engine as proactive_engine  # proactive engine
-from speaker import speak, mute, unmute, is_muted
+from speaker import speak, mute, unmute, is_muted, _get_output_device
 import bt_watcher
+from registry import TOOLS, get_system_volume, duck_system_volume, restore_system_volume
 
 
 
@@ -177,66 +179,67 @@ def assistant_loop():
                 _hotkey_event.clear()
 
             # ── conversation loop — stays active until silence ──
-            while True:
-                try:
-                    state.set("listening")
-                    text = listen()
+            original_volume = get_system_volume()
+            bt_device = _get_output_device()
+            should_duck = bt_device is not None  # only duck if Arcn's output is a separate device
 
-                    if not text:
-                        # nothing heard — drop back to trigger
+            if should_duck:
+                duck_system_volume(10)
+            try:
+                while True:
+                    try:
+                        state.set("listening")
+                        text = listen()
+
+                        if not text:
+                            from state import StateManager
+                            StateManager().clear_pending_note_stage()
+                            StateManager().clear_pending_note_title()
+                            break
+
+                        if any(word in text for word in SHUTDOWN_WORDS):
+                            speak("Shutting down.")
+                            cc.shutdown()
+                            try:
+                                import AppKit
+                                AppKit.NSApplication.sharedApplication().terminate_(None)
+                            except Exception as e:
+                                print(f"[assistant_loop] shutdown termination failed: {e}")
+                            return
+                        state.set("processing")
+                        packet = nlp.predict(text)
+                        packet["source"] = "nlp"
+
+                        if "entities" not in packet:
+                            packet["entities"] = {}
+                        packet["entities"]["raw_text"] = text
+
+                        set_last_intent(packet.get("intent", ""))
+                        set_last_raw_text(text)
+                        result = cc.handle(packet)
+
+                        response = result.get("response", "")
+                        if response:
+                            state.set("speaking")
+                            set_last_response(response)
+                            speak(response)
+
+                        if not result.get("expects_followup", False):
+                            nlp.context.clear_slots_for_intent(packet.get("intent", ""))
+                            break
+
+                    except KeyboardInterrupt:
+                        raise
+
+                    except Exception as e:
+                        print(f"[assistant_loop] turn failed: {e}")
                         from state import StateManager
-                        StateManager().clear_pending_note_stage()
-                        StateManager().clear_pending_note_title()
+                        StateManager().clear_all_pending()
+                        state.set("idle")
                         break
-
-                    if any(word in text for word in SHUTDOWN_WORDS):
-                        speak("Shutting down.")
-                        cc.shutdown()
-                        try:
-                            import AppKit
-                            AppKit.NSApplication.sharedApplication().terminate_(None)
-                        except Exception as e:
-                            print(f"[assistant_loop] shutdown termination failed: {e}")
-                        return
-
-                    state.set("processing")
-                    packet = nlp.predict(text)
-                    packet["source"] = "nlp"
-
-                    if "entities" not in packet:
-                        packet["entities"] = {}
-                    packet["entities"]["raw_text"] = text
-
-                    set_last_intent(packet.get("intent", ""))
-                    set_last_raw_text(text)
-                    result = cc.handle(packet)
-
-                    
-
-                    response = result.get("response", "")
-                    if response:
-                        state.set("speaking")
-                        set_last_response(response)
-                        speak(response)
-
-                    # stay in loop only if tool explicitly expects follow-up
-                    if not result.get("expects_followup", False):
-                        nlp.context.clear_slots_for_intent(packet.get("intent", ""))
-                        break
-
-                    # ── stay in conversation window after response ──
-                    # inner while continues — listens again immediately
-                    # listen() timeout (4s) is the natural exit if silence
-
-                except KeyboardInterrupt:
-                    raise  # let outer handler manage shutdown
-
-                except Exception as e:
-                    print(f"[assistant_loop] turn failed: {e}")
-                    from state import StateManager
-                    StateManager().clear_all_pending()
-                    state.set("idle")
-                    break  # drop back to waiting for next trigger, don't kill the thread
+            finally:
+                if should_duck:
+                    restore_system_volume(original_volume)
     except KeyboardInterrupt:
         print("\nInterrupted.")
         cc.shutdown()
