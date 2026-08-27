@@ -85,7 +85,7 @@ class CommandCenter:
         # Unknown / clarification
         # handling — same as before
         # -------------------------
-        if intent == "unknown_intent" or requires_clarification:
+        if requires_clarification:
             last = self.state.get_last_intent()
 
             if last == "ask_question":
@@ -96,11 +96,11 @@ class CommandCenter:
                 intent = "create_reminder"
                 requires_clarification = False
 
-            elif intent == "unknown_intent":
-                return self._unknown()
-
             else:
                 return self._clarify(intent, entities)
+
+        elif intent == "unknown_intent":
+            return self._unknown()
 
         # -------------------------
         # Memory injection point —
