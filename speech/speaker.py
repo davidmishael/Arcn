@@ -8,7 +8,7 @@ from fractions import Fraction
 # -------------------------
 # Config — change voice here
 # -------------------------
-VOICE       = "am_michael"  # options: *af_heart, af_bella, af_sarah, *am_adam, am_michael
+VOICE       = "am_heart"  # options: *af_heart, af_bella, af_sarah, *am_adam, am_michael
 LANG_CODE   = "a"         # "a" = American English, "b" = British English
 SAMPLE_RATE = 24000
 
