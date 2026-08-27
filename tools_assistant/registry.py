@@ -189,6 +189,36 @@ def mute_volume(entities: dict = {}):
         "Silenced.",
         "Quiet mode.",
     ])
+# -------------------------
+# System volume — read + set to
+# an exact level, for audio ducking.
+# Separate from increase/decrease_volume,
+# which are relative-increment only.
+# -------------------------
+
+def get_system_volume() -> int:
+    """Returns current output volume 0-100, or -1 if it couldn't be read.
+    -1 is a sentinel — never restore to a guessed value."""
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", "output volume of (get volume settings)"],
+            capture_output=True, text=True, timeout=3, check=True
+        )
+        return int(result.stdout.strip())
+    except Exception as e:
+        print(f"[registry] couldn't read system volume: {e}")
+        return -1
+
+def duck_system_volume(level: int = 10):
+    os.system(f"osascript -e \"set volume output volume {level}\"")
+
+def restore_system_volume(level: int):
+    if level < 0:
+        # get_system_volume() failed earlier — restoring a guess is
+        # worse than leaving it ducked. Log it, don't silently pick 50.
+        print("[registry] skipping volume restore — original level unknown")
+        return
+    os.system(f"osascript -e \"set volume output volume {level}\"")
 
 def lock_mac(entities: dict = {}):
     os.system("osascript -e 'tell application \"System Events\" to keystroke \"q\" using {control down, command down}'")
@@ -752,15 +782,17 @@ def ask_question(entities: dict = {}):
             "content": (
                 "You are Arcn, a sharp personal AI assistant with a dry wit and genuine personality. "
                 "You're helpful, direct, occasionally funny, and never robotic. "
-                "Answer concisely in plain conversational language — no markdown, no bullet points, no lists. "
-                "Keep responses short unless depth is actually needed."
+                "Answer in 2-3 sentences maximum, plain conversational language, no markdown, no bullet points, no lists. "
+                "If the question is genuinely broad enough that 2-3 sentences can't do it justice, "
+                "give the most essential 2-3 sentence summary anyway, then end by asking if they want you to go deeper — "
+                "do not just launch into a long answer because the topic is wide."
                 + semantic_note
             )
         }
     ] + _conversation_history
 
     response = ollama.chat(
-        model    = "mistral",
+        model    = "phi3:mini",
         messages = messages,
         keep_alive = "1m"
         
